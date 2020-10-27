@@ -109,7 +109,7 @@ class functions:
             self.df.to_csv(self.save_file, mode = 'w', index = False)
             self.reference_number = self.reference_number +1 
             ref_message = "Ref #: " + str(self.reference_number-1)
-            self.plotting(self.ref) # send a fake value to plot updated ref
+            self.plotting(self.ref, "Reference") # send a fake value to plot updated ref
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
         return ref_message
@@ -165,10 +165,9 @@ class functions:
             plt.ylabel('ADC counts')
         #self.fig.canvas.draw()
         
-    def plotting(self, data):
+    def plotting(self, data, label_view):
         
         self.plot_labels_axis() # configure axis
-        
         if self.ratio_view_handler:
             plt.clf()
             self.plot_labels_axis() # configure axis
@@ -179,19 +178,25 @@ class functions:
                 data_sel = pd.read_csv(self.save_file, header = 0)
                 data_sel = data_sel[self.add_remove_top.data_headers]
                 data_sel = np.true_divide(data_sel,self.ref)*100
-                plt.plot(self.wavelength, data_sel)
-                plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
+                for col in range(0, len(self.add_remove_top.data_headers)):
+                    plt.plot(self.wavelength, data_sel.iloc[:,col], label = self.add_remove_top.data_headers[col])
+                #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
         else:
             if self.add_remove_top.data_headers is not None:
                 data_sel = pd.read_csv(self.save_file, header = 0)
                 data_sel = data_sel[self.add_remove_top.data_headers]
-                plt.plot(self.wavelength, data_sel)
-                plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
+                for col in range(0,len(self.add_remove_top.data_headers)):
+                    plt.plot(self.wavelength, data_sel.iloc[:,col], label = self.add_remove_top.data_headers[col])
+       
+                #for col in range(0,len(self.add_remove_top.data_headers)):
+                #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
             else:
                 pass
             plt.plot(self.wavelength,self.ref, 'r--', label = 'Reference')
-        plt.plot(self.wavelength, data)
+        
+        plt.plot(self.wavelength, data, label = label_view)
         plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
+        plt.legend()
         self.fig.canvas.draw()
         
     def open_new_experiment(self):
@@ -221,15 +226,18 @@ class functions:
     def plot_selected(self):
         plt.clf()
         self.plot_labels_axis()
-        print(len(self.add_remove_top.data_headers))
-        try:
-            for col in range(0,len(self.add_remove_top.data_headers)):
-                self.plotting(self.df[self.add_remove_top.data_headers[col]])
-            plt.plot(self.wavelength, self.df[self.add_remove_top.data_headers])
-            plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop ={'size': 6})
-            plt.subplots_adjust(bottom =0.14, right = 0.95)
-            self.fig.canvas.draw()
-        except:
+        
+        if self.add_remove_top.data_headers is not None:
+            self.plotting(np.zeros((288,1)), None)
+            #for col in range(0,len(self.add_remove_top.data_headers)):
+            #self.plotting(self.df[self.add_remove_top.data_headers[col]])
+            #self.plotting(self.df[self.add_remove_top.data_headers])
+            
+            #plt.plot(self.wavelength, self.df[self.add_remove_top.data_headers])
+            #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop ={'size': 6})
+            #plt.subplots_adjust(bottom =0.14, right = 0.95)
+            #self.fig.canvas.draw()
+        else:
             messagebox.showerror('Error','No data selected. Select data to plot')
     
     
@@ -345,7 +353,7 @@ class functions:
                 data = pd.read_csv(self.acquire_file, header = None)
                 
             plt.clf()
-            self.plotting(data)
+            self.plotting(data, "Scan: " +str(self.scan_number))
         return scan_message
     
     def open_loop_function(self):
@@ -358,7 +366,7 @@ class functions:
             data = self.acquire_avg(0)
             data = pd.DataFrame(data)
             np.savetxt(self.acquire_file, data, fmt="%d", delimiter= ",")
-            self.plotting(data)
+            self.plotting(data, "Open Loop")
         
     def sequence(self, save):
         if self.ser.is_open:
@@ -386,7 +394,7 @@ class functions:
             burst_delay = float(self.settings[21][1])
             
             plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
-            
+            self.plot_labels_axis() # configure axis
             for burst in range(0,burst_number):
                 number_measurements_burst = int(self.settings[23+burst][1])
                 measurement = 0
@@ -396,10 +404,13 @@ class functions:
                     data = []
                     data = self.acquire_avg(pulses)
                     data = pd.DataFrame(data)
-                    self.plotting(data)#.plot(self.wavelength, data, label = graph_label)
-                    plt.subplots_adjust(bottom = 0.14, right = 0.95)
-                    #plt.legend(loc = "center right", prop = {'size': 6})
+                    if self.ratio_view_handler:
+                        data = np.true_divide(data, self.ref)*100
                     
+                    plt.plot(self.wavelength, data, label = graph_label)
+                    plt.subplots_adjust(bottom = 0.14, right = 0.95)
+                    plt.legend(loc = "center right", prop = {'size': 6})
+                    self.fig.canvas.draw()
                     measurement = measurement+1
                     
                     if save:
