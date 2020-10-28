@@ -109,7 +109,8 @@ class functions:
             self.df.to_csv(self.save_file, mode = 'w', index = False)
             self.reference_number = self.reference_number +1 
             ref_message = "Ref #: " + str(self.reference_number-1)
-            self.plotting(self.ref, "Reference") # send a fake value to plot updated ref
+            self.ref = self.ref.to_numpy() # make sure it is a numpy array
+            self.plotting(np.zeros((288)), None) # send a fake value to plot updated ref
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
         return ref_message
