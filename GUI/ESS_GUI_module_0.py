@@ -327,8 +327,12 @@ class Module_0:
     def ratio_view_toggle(self):
         if  self.ratio_view_button['relief'] == SUNKEN:
             self.ratio_view_button.config(bg = 'light grey', relief = RAISED)
+            self.open_loop_button.config(state = NORMAL)
+            self.autorange_button.config(state = NORMAL)
         else:
             self.ratio_view_button.config(bg = 'gold', relief = SUNKEN)
+            self.open_loop_button.config(state = DISABLED)
+            self.autorange_button.config(state = DISABLED)
         self.func.ratio_view()
         
     # handle the button appearance and handles openloop functionality

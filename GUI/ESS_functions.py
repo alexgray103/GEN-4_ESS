@@ -375,7 +375,7 @@ class functions:
             
             plt.clf()
             data = self.acquire_avg(0)
-            data = pd.DataFrame(data)
+            #data = pd.DataFrame(data)
             np.savetxt(self.acquire_file, data, fmt="%d", delimiter= ",")
             self.plotting(data, "Open Loop")
     
