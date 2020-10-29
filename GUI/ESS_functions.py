@@ -48,7 +48,7 @@ class functions:
         self.battery_percent = 100
         
         # attributes to select data to be plotted
-        self.ref = np.ones((288))*1000 # temporary reference
+        self.ref = np.ones((288,1))*1000 # temporary reference
         self.scan_ref = None
         
         # plotting view attributes
@@ -104,6 +104,7 @@ class functions:
             self.reference_number = self.reference_number +1 
             ref_message = "Ref #: " + str(self.reference_number-1)
             self.ref = self.ref.to_numpy()
+            plt.clf()
             self.plotting(np.zeros(288), None) # send a fake value to plot updated ref
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
@@ -173,10 +174,6 @@ class functions:
         #self.fig.canvas.draw()
         
     def plotting(self, data, label_view):
-        try:
-            data = data.to_numpy()
-        except:
-            pass
         self.plot_labels_axis() # configure axis
         
         if self.ratio_view_handler:
@@ -184,6 +181,7 @@ class functions:
             self.plot_labels_axis() # configure axis
             
             data = np.true_divide(data, self.ref)*100
+            
             if self.add_remove_top.data_headers is not None:
 
                 data_sel = pd.read_csv(self.save_file, header = 0)
@@ -240,7 +238,7 @@ class functions:
         self.plot_labels_axis()
         
         if self.add_remove_top.data_headers is not None:
-            self.plotting(np.zeros(288), None)
+            self.plotting(np.zeros((288,1)), None)
             #for col in range(0,len(self.add_remove_top.data_headers)):
             #    self.plotting(self.df[self.add_remove_top.data_headers[col]])
             #plt.plot(self.wavelength, self.df[self.add_remove_top.data_headers])
@@ -363,7 +361,7 @@ class functions:
                     self.plotting(data, "Scan :" + str(self.scan_number-1))
             else: # temporary save
                 np.savetxt(self.acquire_file, data, fmt="%d", delimiter=",")
-                data = pd.read_csv(self.acquire_file, header = None)
+                data = pd.read_csv(self.acquire_file, header = None).to_numpy()
                 plt.clf()
                 self.plotting(data, "Scan: Temp. Data" )
             
@@ -411,6 +409,7 @@ class functions:
             plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
             self.plot_labels_axis() # configure axis
             temp_data_array = pd.DataFrame()
+            start = time.time()
             for burst in range(0,burst_number):
                 number_measurements_burst = int(self.settings[23+burst][1])
     
@@ -427,13 +426,18 @@ class functions:
                     plt.legend(loc = "center right", prop = {'size': 6})
                     
                     if save:
-                        seq_message = "Scan: " +str(self.scan_number)
+                        seq_message = "Scan: " + str(self.scan_number)
                         df_data_array = pd.DataFrame(data)
                         self.df['Scan_ID %d' % (self.scan_number)] = df_data_array
-                        self.df.to_csv(self.save_file, mode = 'w', index = False)
+                        self.scan_number = self.scan_number +1
                     else:
                         seq_message = "Scan: Temp"
                 time.sleep(burst_delay)
+            end = time.time()
+            print("seq Time: " + str(end-start))
+           # after sequence complete save and plot
+            if save:
+                self.df.to_csv(self.save_file, mode = 'w', index = False)
             # after all data is taken save to sequence csv
             self.fig.canvas.draw()
         return seq_message
