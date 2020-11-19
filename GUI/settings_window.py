@@ -23,6 +23,7 @@ from settings import Settings as _Settings
 import serial
 import matplotlib.pyplot as plt
 from time import sleep
+from subprocess import check_output
 
 ########## global variables ######################
 settings_file = '/home/pi/Desktop/Spectrometer/settings/settings.csv'
@@ -42,6 +43,9 @@ class settings_popup_window:
         else:
             self.settings_popup.geometry('600x480') # set the size of the monitor
         self.settings_buttons()     # actually create the buttons
+        
+        # get ip adress of raspberry Pi for VNC connection
+        
         
     def module_connect(self):
 
@@ -100,18 +104,26 @@ class settings_popup_window:
         settings_button_frame = Frame(self.settings_popup, width = 350, height =120, background = "sky blue")
         #settings_button_frame.place(x = 585, y = 340)
         settings_button_frame.grid(row = 3, column = 2, sticky = sticky_to, padx = 2, pady = 2)
-            
+        
+        self.ip_adress = str((check_output(['hostname', '-I'])).decode())
+        if len(self.ip_adress) == 1:
+            self.ip_adress = "Not Connected to Hotspot"
+        else:
+            self.ip_adress = "IP Adress: " + self.ip_adress
+        self.ip_label = Label(settings_button_frame, bg = 'sky blue', text = self.ip_adress)
+        self.ip_label.grid(row = 0 , column = 0, sticky = sticky_to, columnspan = 3)
+        
         quit_button = Button(settings_button_frame, text = "Back", fg = 'Red', command = self.settings_popup.destroy, width = 9, height = 3)
-        quit_button.grid(row = 1, column = 0, sticky = sticky_to)
+        quit_button.grid(row = 2, column = 0, sticky = sticky_to)
         
         save_button = Button(settings_button_frame, text = "Save", fg = 'Green', command = self.settings_save, width = 22, height = 3)
-        save_button.grid(row = 0, column = 0, columnspan = 3, pady = 2, sticky = sticky_to)
+        save_button.grid(row = 1, column = 0, columnspan = 3, sticky = sticky_to)
         
         default_button = Button(settings_button_frame, text = "Reset To Default Settings", command = self.default, width = 9, height = 3, wraplength = 85)
-        default_button.grid(row = 1, column = 1, sticky = sticky_to)
+        default_button.grid(row = 2, column = 1, sticky = sticky_to)
         
         connect_module_button = Button(settings_button_frame, text = "Connect Module", command = self.module_connect, width = 9, height = 3, wraplength = 85)
-        connect_module_button.grid(row = 1, column = 2, sticky = sticky_to)
+        connect_module_button.grid(row = 2, column = 2, sticky = sticky_to)
         
         #read in settings
         settings_open = open(self.settings_file, 'r')
@@ -188,7 +200,7 @@ class settings_popup_window:
   
         self.integ_time = IntVar()
         self.integ_time.set(integ_time)
-        integ_time_button = Button(single_acquisition_frame, text = "Integration Time (usec):", fg = fground, bg = button_background,\
+        integ_time_button = Button(single_acquisition_frame, text = "Integ. Time (\u03BCSec):", fg = fground, bg = button_background,\
                                    font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 3))
         integ_time_button.grid(row = 3, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         integ_time_entry = Entry(single_acquisition_frame, textvariable = self.integ_time, justify = CENTER)
@@ -204,7 +216,7 @@ class settings_popup_window:
         
         self.dark_subtract = IntVar()
         self.dark_subtract.set(dark_subtract)
-        dark_subtraction_entry = Checkbutton(single_acquisition_frame, text = "Use Dark Subtraction ", variable = self.dark_subtract)
+        dark_subtraction_entry = Checkbutton(single_acquisition_frame, text = "Dark Subtraction ", width = 20, variable = self.dark_subtract)
         dark_subtraction_entry.grid(row = 5, column =0, pady = 2, padx = 2, sticky = sticky_to)
         
         self.smoothing_used = IntVar()
@@ -219,9 +231,9 @@ class settings_popup_window:
         auto_range_label.grid(row = 0, column = 0, columnspan = 2, sticky = sticky_to)
         self.threshold = IntVar()
         self.threshold.set(auto_pulse_threshold)
-        autopulse_entry_button = Button(Auto_range_frame, text = "AutoPulse Threshold(counts):", fg = fground, font = myfont,
+        autopulse_entry_button = Button(Auto_range_frame, text = "AutoPulse Threshold:", fg = fground, font = ("Arial", 8),
                                         bg = button_background, command = lambda: self.numpad_popup(self.settings_popup, 6))
-        autopulse_entry_button.grid(row = 1, column = 0, pady = 2, padx = 3, sticky = sticky_to)
+        autopulse_entry_button.grid(row = 1, column = 0, pady = 2,padx=1, sticky = sticky_to)
         autopulse_entry = Entry(Auto_range_frame, textvariable = self.threshold, justify = CENTER)
         autopulse_entry.grid(row = 1, column = 1, padx = 8, sticky = sticky_to)
         
@@ -242,8 +254,8 @@ class settings_popup_window:
         graph_frame_label.grid(row = 0, column = 0, columnspan = 2, sticky = sticky_to)
         self.smoothing = IntVar()
         self.smoothing.set(smoothing_half_width)
-        smoothing_entry_button = Button(graph_frame, text = "Smoothing Half-Width (pixels):", fg = fground, bg = button_background,
-                                        font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 8), state = DISABLED)
+        smoothing_entry_button = Button(graph_frame, text = "Smoothing Half-Width:", fg = fground, bg = button_background,
+                                        font = ("Arial", 8), command = lambda: self.numpad_popup(self.settings_popup, 8), state = DISABLED)
         smoothing_entry_button.grid(row = 1, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         smoothing_entry = Entry(graph_frame, textvariable = self.smoothing, justify = CENTER, state = DISABLED)
         smoothing_entry.grid(row = 1, column = 1, padx = 8, sticky = sticky_to)
@@ -272,7 +284,8 @@ class settings_popup_window:
         wavelength_pixel_label.grid(row = 0, column = 0, columnspan = 3, sticky = sticky_to)
         self.a_0 = StringVar()
         self.a_0.set(a_0)
-        a0_button = Button(wavelength_pixel_frame, text = "A_0: ", fg = fground, bg = button_background,
+        
+        a0_button = Button(wavelength_pixel_frame, text = '\u03B1\u2080 : ', fg = fground, bg = button_background,
                            font = myfont,command = lambda: self.numpad_popup(self.settings_popup, 15))
         a0_button.grid(row = 1, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         a0_entry = Entry(wavelength_pixel_frame, textvariable = self.a_0, width = 16)
@@ -280,7 +293,7 @@ class settings_popup_window:
         
         self.b_1 = StringVar()
         self.b_1.set(b_1)
-        b1_button = Button(wavelength_pixel_frame, text = "B_1: ", fg = fground, bg = button_background,
+        b1_button = Button(wavelength_pixel_frame, text = "\u03B2\u2080 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 16))
         b1_button.grid(row = 2, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         b1_entry = Entry(wavelength_pixel_frame, textvariable = self.b_1, width = 16)
@@ -288,7 +301,7 @@ class settings_popup_window:
         
         self.b_2 = StringVar()
         self.b_2.set(b_2)
-        b2_button = Button(wavelength_pixel_frame, text = "B_2: ", fg = fground, bg = button_background,
+        b2_button = Button(wavelength_pixel_frame, text = "\u03B2\u2081 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 17))
         b2_button.grid(row = 3, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         b2_entry = Entry(wavelength_pixel_frame, textvariable = self.b_2, width = 16)
@@ -298,7 +311,7 @@ class settings_popup_window:
         
         self.b_3 = StringVar()
         self.b_3.set(b_3)
-        b3_button = Button(wavelength_pixel_frame, text = "B_3: ", fg = fground, bg = button_background,
+        b3_button = Button(wavelength_pixel_frame, text = "\u03B2\u2082 :", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 18))
         b3_button.grid(row = 4, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         b3_entry = Entry(wavelength_pixel_frame, textvariable = self.b_3, width = 16)
@@ -308,7 +321,7 @@ class settings_popup_window:
         
         self.b_4 = StringVar()
         self.b_4.set(b_4)
-        b4_button = Button(wavelength_pixel_frame, text = "B_4: ", fg = fground, bg = button_background,
+        b4_button = Button(wavelength_pixel_frame, text = "\u03B2\u2083 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 19))
         b4_button.grid(row = 5, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         b4_entry = Entry(wavelength_pixel_frame, textvariable = self.b_4, width = 16)
@@ -318,7 +331,7 @@ class settings_popup_window:
         
         self.b_5 = StringVar()
         self.b_5.set(b_5)
-        b5_button = Button(wavelength_pixel_frame, text = "B_5: ", fg = fground, bg = button_background,
+        b5_button = Button(wavelength_pixel_frame, text = "\u03B2\u2084 :", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 20))
         b5_button.grid(row = 6, column = 0, pady = 2, padx = 3, sticky = sticky_to)
         b5_entry = Entry(wavelength_pixel_frame, textvariable = self.b_5, width = 16)
@@ -334,7 +347,7 @@ class settings_popup_window:
         
         self.step_size = IntVar()
         self.step_size.set(step_resolution)
-        step_size_button = Button(stepper_frame, text = "Step Size (um)", fg = 'black', bg = button_background,
+        step_size_button = Button(stepper_frame, text = "Step (\u03BCm)", fg = 'black', bg = button_background,
                                   font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 13))
         step_size_button.grid(row = 1, column = 0, padx = 3, pady = 3, sticky = sticky_to)
         step_size_entry = Entry(stepper_frame, textvariable = self.step_size, justify = CENTER)
@@ -365,9 +378,9 @@ class settings_popup_window:
         
         self.burst_delay_number = StringVar()
         self.burst_delay_number.set(burst_delay_sec)
-        burst_delay_button = Button(sequence_frame, text = "Interburst delay: ", fg = 'black', bg = button_background,
-                                    font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 21))
-        burst_delay_button.grid(row = 2, column = 0, padx = 3, pady = 10, sticky = sticky_to)
+        burst_delay_button = Button(sequence_frame, text = "Interburst delay (Sec): ", fg = 'black', bg = button_background,
+                                    font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 21), width = 22)
+        burst_delay_button.grid(row = 2, column = 0, padx = 4, pady = 10, sticky = sticky_to)
         burst_delay_entry = Entry(sequence_frame, textvariable = self.burst_delay_number, justify = CENTER)
         burst_delay_entry.grid(row = 2, column = 1, padx = 8,pady = 10, sticky = sticky_to)
         
@@ -412,8 +425,8 @@ class settings_popup_window:
         sequence_frame.grid_rowconfigure((0,1,2),weight = 1)
         self.burst_frame.grid_columnconfigure((0,1),weight = 1)
         self.burst_frame.grid_rowconfigure((0,1,2,3,4,5,6,7,8,9,10),weight = 1)
-        settings_button_frame.grid_columnconfigure((0,1),weight = 1)
-        settings_button_frame.grid_rowconfigure((0,1),weight = 1)
+        settings_button_frame.grid_columnconfigure((0,1,2),weight = 1)
+        settings_button_frame.grid_rowconfigure((0,1,2),weight = 1)
         
     def settings_save(self):
         settings_open = open(self.settings_file, 'r')
@@ -480,12 +493,12 @@ class settings_popup_window:
         self.smoothing_used.set('1')
         self.step_size.set('500')
         self.grid_size.set('10')
-        self.a_0.set('306.2701737')
-        self.b_1.set('2.712800137')
-        self.b_2.set('-1.301585429')
-        self.b_3.set('-5.886856881')
-        self.b_4.set('17.33842519')
-        self.b_5.set('15.99830646')
+        self.a_0.set('302.0536145')
+        self.b_1.set('2.698308925')
+        self.b_2.set('1.399704611')
+        self.b_3.set('-41.00473430')
+        self.b_4.set('148.5342495')
+        self.b_5.set('-150.6933832')
         self.burst_delay_number.set('1.0')
         self.burst_number.set('1')
         self.measurement_burst = str(5)
