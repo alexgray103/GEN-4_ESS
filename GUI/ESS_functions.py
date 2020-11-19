@@ -42,7 +42,6 @@ class functions:
         self.exp_folder = '/home/pi/Desktop/Spectrometer' # experiment folder used for saving
         self.df = None # data frame array used for storing and plotting data
         self.df_scan = None
-        self.scan_ref = None
         self.serial_check = False #variable for flagging serial connection
         self.battery_check_flag = False
         self.battery_percent = 100
@@ -54,16 +53,16 @@ class functions:
         # plotting view attributes
         self.ratio_view_handler = False
         self.autoscale_handler = False
-    
+        self.prime_pump_handler = False  # handle turning on/off pump
             
         # these are two possible port names for the arduino attachment
         port = "/dev/ttyUSB0"
         port2 = "/dev/ttyUSB1"
         
         try:
-            self.ser = serial.Serial(port, baudrate = 115200, timeout = 3)
+            self.ser = serial.Serial(port, baudrate = 115200, timeout = 5)
         except:
-            self.ser = serial.Serial(port2, baudrate = 115200, timeout =3)
+            self.ser = serial.Serial(port2, baudrate = 115200, timeout =5)
         
         # two pseudo reads to initalize the spectrometer
         self.ser.write(b"read\n")
@@ -94,6 +93,14 @@ class functions:
             return percent
         else:
             return self.battery_percent
+    
+    def save_scan_reference(self):
+        if self.scan_file is not None:
+            self.scan_ref = pd.DataFrame(np.loadtxt(self.acquire_file, delimiter = ','))
+            self.df_scan['Reference %d'] = self.scan_ref
+            self.df_scan.to_csv(self.scan_file, mode = 'w', index = False)
+        else:
+            messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
         
     def save_reference(self):
         ref_message = None
@@ -105,38 +112,27 @@ class functions:
             ref_message = "Ref #: " + str(self.reference_number-1)
             self.ref = self.ref.to_numpy()
             plt.clf()
-            self.plotting(np.zeros(288), None) # send a fake value to plot updated ref
+            self.plotting(np.zeros((288)), None) # send a fake value to plot updated ref
+            
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
         return ref_message
     
-    def save_scan_reference(self):
-        if self.scan_file is not None:
-            self.scan_ref = pd.DataFrame(np.loadtxt(self.acquire_file, delimiter = ','))
-            self.df_scan['Reference'] = self.scan_ref
-            self.df_scan.to_csv(self.scan_file, mode = 'w', index = False)
-        else:
-            messagebox.showerror('Error', 'No Save File selected, create save file to save reference')
-    
     def save_spectra(self):
-        message = None
         if self.save_file is not None:
             temp_data = pd.DataFrame(np.loadtxt(self.acquire_file, delimiter = ','))
             self.df['Scan_ID %d' % self.scan_number] = temp_data
             self.df.to_csv(self.save_file, mode = 'w', index = False)
-            self.scan_number = self.scan_number +1
-            message = "Scan #: " + str(self.scan_number-1)
-        
+            self.scan_number = self.scan_number +1 
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save Spectra')
-        return message
-    
+        
     def add_remove_func(self):
         self.add_remove_top.create_add_remove(self.save_file)
         
         if self.add_remove_top.ref_ratio is not None:
-            self.ref = self.df[[self.add_remove_top.ref_ratio]].to_numpy()
-            
+            self.ref = self.df[[self.add_remove_top.ref_ratio]].to_numpy() 
+        
     def ratio_view(self):
         self.ratio_view_handler = not self.ratio_view_handler
     
@@ -174,20 +170,20 @@ class functions:
         #self.fig.canvas.draw()
         
     def plotting(self, data, label_view):
-        self.plot_labels_axis() # configure axis
         
+        data = pd.DataFrame(data).to_numpy()
+        self.plot_labels_axis() # configure axis
         if self.ratio_view_handler:
             plt.clf()
             self.plot_labels_axis() # configure axis
             
             data = np.true_divide(data, self.ref)*100
-            
             if self.add_remove_top.data_headers is not None:
 
                 data_sel = pd.read_csv(self.save_file, header = 0)
                 data_sel = data_sel[self.add_remove_top.data_headers]
                 data_sel = np.true_divide(data_sel,self.ref)*100
-                for col in range(0,len(self.add_remove_top.data_headers)):
+                for col in range(0, len(self.add_remove_top.data_headers)):
                     plt.plot(self.wavelength, data_sel.iloc[:,col], label = self.add_remove_top.data_headers[col])
                 #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
         else:
@@ -196,14 +192,17 @@ class functions:
                 data_sel = data_sel[self.add_remove_top.data_headers]
                 for col in range(0,len(self.add_remove_top.data_headers)):
                     plt.plot(self.wavelength, data_sel.iloc[:,col], label = self.add_remove_top.data_headers[col])
+       
+                #for col in range(0,len(self.add_remove_top.data_headers)):
                 #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
             else:
                 pass
-            try:
+            try: 
                 self.ref = self.ref.to_numpy()
-                plt.plot(self.wavelength,self.ref, 'r--', label = "Reference")
+                plt.plot(self.wavelength,self.ref, 'r--', label = 'Reference')
             except:
-                plt.plot(self.wavelength,self.ref, 'r--', label = "Reference") 
+                plt.plot(self.wavelength,self.ref,'r--', label = "Reference")
+                
         plt.plot(self.wavelength, data, label = label_view)
         plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
         plt.legend()
@@ -240,7 +239,9 @@ class functions:
         if self.add_remove_top.data_headers is not None:
             self.plotting(np.zeros((288,1)), None)
             #for col in range(0,len(self.add_remove_top.data_headers)):
-            #    self.plotting(self.df[self.add_remove_top.data_headers[col]])
+            #self.plotting(self.df[self.add_remove_top.data_headers[col]])
+            #self.plotting(self.df[self.add_remove_top.data_headers])
+            
             #plt.plot(self.wavelength, self.df[self.add_remove_top.data_headers])
             #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop ={'size': 6})
             #plt.subplots_adjust(bottom =0.14, right = 0.95)
@@ -329,13 +330,11 @@ class functions:
                         for i in range(1,286,1):
                             data[i] = sum(dummy[i-1:i+2])/(3)
             self.battery_check_flag = False
-            
             data = np.where(data<=0,0,data)
             #for idx in range(0,len(data)):
             #    if data[idx] <=0:
             #        data[idx] = 1
             return data
-        
         except serial.serialutil.SerialException:
             self.battery_check_flag = False
             messagebox.showerror('Error', 'Spectrometer Not connected, Connect and Restart')
@@ -344,6 +343,7 @@ class functions:
     def acquire(self, save):
         scan_message = None
         (self.settings, self.wavelength) = self.settings_func.settings_read()
+        
         data = self.acquire_avg(int(self.settings[1][1]))
         if data is not None:
             if save:
@@ -357,14 +357,12 @@ class functions:
                     data = self.df[['Scan_ID %d' %self.scan_number]]
                     self.scan_number = 1 + self.scan_number
                     scan_message = "Scan #: " + str(self.scan_number-1)    
-                    plt.clf()
-                    self.plotting(data, "Scan :" + str(self.scan_number-1))
             else: # temporary save
                 np.savetxt(self.acquire_file, data, fmt="%d", delimiter=",")
-                data = pd.read_csv(self.acquire_file, header = None).to_numpy()
-                plt.clf()
-                self.plotting(data, "Scan: Temp. Data" )
-            
+                data = pd.read_csv(self.acquire_file, header = None)
+                
+            plt.clf()
+            self.plotting(data, "Scan: " +str(self.scan_number))
         return scan_message
     
     def open_loop_function(self):
@@ -375,72 +373,66 @@ class functions:
             
             plt.clf()
             data = self.acquire_avg(0)
-            #data = pd.DataFrame(data)
+            data = pd.DataFrame(data)
             np.savetxt(self.acquire_file, data, fmt="%d", delimiter= ",")
             self.plotting(data, "Open Loop")
-    
+        
     def sequence(self, save):
-        seq_message = None
-        plt.clf()
+        scan_message = None 
         if self.ser.is_open:
             (self.settings, self.wavelength) = self.settings_func.settings_read()       
-            #if save:
-                #try:
-                #keyboard = key_pad(self.parent)
-                #(seq_file, save_folder) = keyboard.create_keypad()
-                #self.seq_file = self.exp_folder + '/' + seq_file + '_sequence.csv'
-                #open(self.seq_file, 'x')
-                    
-                #self.df_seq = pd.DataFrame(self.wavelength)
-                #self.df_seq.columns = ['Wavelength (nm)']
-                #self.df_seq.to_csv(self.seq_file, mode = "a", index = False)
-                #except:
-                #messagebox.showerror("Error", "No Filename found! Please input file name to save Sequence")
-            #else:
-                #pass
-            number_avg = int(self.settings[11][1])
-            integ_time = int(self.settings[3][1])
-            smoothing_used = int(self.settings[12][1])
-            smoothing_width = int(self.settings[8][1])
-            dark_subtract = int(self.settings[4][1])
-            burst_number = int(self.settings[22][1])
-            burst_delay = float(self.settings[21][1])
-            
-            plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
-            self.plot_labels_axis() # configure axis
-            temp_data_array = pd.DataFrame()
-            start = time.time()
-            for burst in range(0,burst_number):
-                number_measurements_burst = int(self.settings[23+burst][1])
+            # make sure we have a save destination if acquire and save
+            if save and self.save_file == None:
+                messagebox.showerror('Error', 'No Experiment File Found, create or open File to save Data')
     
-                for i in range(0,number_measurements_burst):
-                    graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
-                    pulses = int(self.settings[33+burst][1])
-                    data = []
-                    data = self.acquire_avg(pulses)
-                    #data = pd.DataFrame(data)
-                    if self.ratio_view_handler:
-                        data = np.true_divide(data, self.ref)*100
-                    plt.plot(self.wavelength, data, label = graph_label)
-                    plt.subplots_adjust(bottom = 0.14, right = 0.95)
-                    plt.legend(loc = "center right", prop = {'size': 6})
+            else:
+                plt.clf()
+                number_avg = int(self.settings[11][1])
+                integ_time = int(self.settings[3][1])
+                smoothing_used = int(self.settings[12][1])
+                smoothing_width = int(self.settings[8][1])
+                dark_subtract = int(self.settings[4][1])
+                burst_number = int(self.settings[22][1])
+                burst_delay = float(self.settings[21][1])
+                plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
+                self.plot_labels_axis() # configure axis
+                for burst in range(0,burst_number):
+                    number_measurements_burst = int(self.settings[23+burst][1])
+                    measurement = 0 # hold measurement number for each burst
                     
-                    if save:
-                        seq_message = "Scan: " + str(self.scan_number)
-                        df_data_array = pd.DataFrame(data)
-                        self.df['Scan_ID %d' % (self.scan_number)] = df_data_array
-                        self.scan_number = self.scan_number +1
-                    else:
-                        seq_message = "Scan: Temp"
-                time.sleep(burst_delay)
-            end = time.time()
-            print("seq Time: " + str(end-start))
-           # after sequence complete save and plot
-            if save:
-                self.df.to_csv(self.save_file, mode = 'w', index = False)
-            # after all data is taken save to sequence csv
-            self.fig.canvas.draw()
-        return seq_message
+                    # take a dark measurement before each burst
+                    self.settings[4][1] = 0
+                    dark = self.acquire_avg(0)
+                    
+                    for i in range(0,number_measurements_burst):
+                        graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
+                        pulses = int(self.settings[33+burst][1])
+                        data = []
+                        data = self.acquire_avg(pulses)
+                        data = data - dark
+                        #check if we are in ratio view
+                        if self.ratio_view_handler:
+                            data = np.true_divide(data, self.ref)*100
+                        data = pd.DataFrame(data).to_numpy()
+                        
+                        plt.plot(self.wavelength, data, label = graph_label)
+                        plt.subplots_adjust(bottom = 0.14, right = 0.95)
+                        plt.legend(loc = "center right", prop = {'size': 6})
+                        
+                        scan_message = "Scan: " + str(self.scan_number)
+                        self.scan_number = self.scan_number + 1
+                        measurement = measurement+1 
+                        
+                        if save:
+                            df_data_array = pd.DataFrame(data)
+                            self.df['Scan %d' % (self.scan_number)] = df_data_array
+                    self.settings[4][1] = dark_subtract
+                    self.fig.canvas.draw()
+                    time.sleep(burst_delay)
+                # after all data is taken save to sequence csv
+                if save:
+                    self.df.to_csv(self.save_file, mode = 'w', index = False)
+        return scan_message
     
     def autorange(self):
         (self.settings, self.wavelength) = self.settings_func.settings_read()       
@@ -541,11 +533,11 @@ class functions:
     def scan(self):
         grid_size = int(self.settings[14][1])
         # check if spectrometer is connected
-        for x in range(0,int(grid_size/2)):
-            self.ser.write(b"x 1\n")    
-        for y in range(0,int(grid_size/2)):
-            self.ser.write(b"y 1\n")
+        
+            
         if self.ser.is_open:
+            self.ser.write(b"step_size %d\n" %int(self.settings[13][1]))        
+            
             self.plot_labels_axis() # set axis and labels
             (self.settings, self.wavelength) = self.settings_func.settings_read()
             # if we dont have a scan file then create one for saving data
@@ -553,6 +545,11 @@ class functions:
                 messagebox.showerror('Error', 'No Scan File. Create scan file to save data')
             elif self.scan_file is not None:
                 if self.scan_ref is not None:
+                    for x in range(0,int(grid_size/2)):
+                        self.ser.write(b"x 1\n")
+                    time.sleep(1)
+                    for y in range(0,int(grid_size/2)):
+                        self.ser.write(b"y 1\n")
                     grid_size = int(self.settings[14][1])
                     scan_resolution = int(self.settings[13][1])
                     start = time.time()
@@ -591,7 +588,7 @@ class functions:
                                 self.progress_popup.update_idletasks()
 
 
-                            self.ser.write(b"x 1\n")
+                            self.ser.write(b"x 0\n")
                         
                         self.ser.write(b"home\n")
                         self.progress_popup.destroy()
@@ -599,7 +596,6 @@ class functions:
                         self.fig.canvas.draw()
                         self.df_scan.to_csv(self.scan_file, mode = 'w', index = False)
                         self.scan_file = None
-                        self.scan_ref = None
                         end = time.time()
                         print(end-start)
                         
@@ -630,5 +626,83 @@ class functions:
             messagebox.showerror('Error','Spectrometer Not Connected, Connect and Restart')
                 
                
-                    
+########### Module 2 Functions ########################
+    def pump_prime(self):
+        self.prime_pump_handler = not self.prime_pump_handler
+        self.ser.write(b"prime_pump %d\n" %self.prime_pump_handler)
+        
+    def water_acquire(self, save):
+        scan_message = None
+        (self.settings, self.wavelength) = self.settings_func.settings_read()
+        self.ser.write(b"pump_read\n")
+        data = self.acquire_avg(int(self.settings[1][1]))
+        if data is not None:
+            if save:
+                if self.save_file == None:
+                    messagebox.showerror('Error', 'No Experiment File Found, create or open File to save Data')
+                else:
+                    # save data array to save_file
+                    df_data_array = pd.DataFrame(data)
+                    self.df['Scan_ID %d' %self.scan_number] = df_data_array
+                    self.df.to_csv(self.save_file, mode = 'w', index = False)
+                    data = self.df[['Scan_ID %d' %self.scan_number]]
+                    self.scan_number = 1 + self.scan_number
+                    scan_message = "Scan #: " + str(self.scan_number-1)    
+            else: # temporary save
+                np.savetxt(self.acquire_file, data, fmt="%d", delimiter=",")
+                data = pd.read_csv(self.acquire_file, header = None)
                 
+            plt.clf()
+            self.plotting(data, "Scan: " +str(self.scan_number))
+        return scan_message
+    
+    def water_sequence(self, save):
+        seq_message = None
+        plt.clf()
+        if self.ser.is_open:
+            if save and self.save_file == None:
+                messagebox.showerror('Error', 'No Experiment File Found, create or open File to save Data')
+            (self.settings, self.wavelength) = self.settings_func.settings_read()       
+            number_avg = int(self.settings[11][1])
+            integ_time = int(self.settings[3][1])
+            smoothing_used = int(self.settings[12][1])
+            smoothing_width = int(self.settings[8][1])
+            dark_subtract = int(self.settings[4][1])
+            burst_number = int(self.settings[22][1])
+            burst_delay = float(self.settings[21][1])
+            
+            plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
+            self.plot_labels_axis() # configure axis
+            start = time.time()
+            for burst in range(0,burst_number):
+                number_measurements_burst = int(self.settings[23+burst][1])
+                self.ser.write(b"pump_read\n")
+                for i in range(0,number_measurements_burst):
+                    graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
+                    pulses = int(self.settings[33+burst][1])
+                    data = []
+                    data = self.acquire_avg(pulses).reshape((288,1))
+                    data = pd.DataFrame(data)
+                    if self.ratio_view_handler:
+                        data = (data/self.ref)*100
+                    data = pd.DataFrame(data).to_numpy()
+                    plt.plot(self.wavelength, data, label = graph_label)
+                    plt.subplots_adjust(bottom = 0.14, right = 0.95)
+                    plt.legend(loc = "center right", prop = {'size': 6})
+                    
+                    if save:
+                        seq_message = "Scan: " + str(self.scan_number)
+                        df_data_array = pd.DataFrame(data)
+                        self.df['Scan_ID %d' % (self.scan_number)] = df_data_array
+                        self.scan_number = self.scan_number +1
+                    else:
+                        seq_message = "Scan: Temp"
+                time.sleep(burst_delay)
+            end = time.time()
+            print("seq Time: " + str(end-start))
+           # after sequence complete save and plot
+            if save:
+                self.df.to_csv(self.save_file, mode = 'w', index = False)
+            # after all data is taken save to sequence csv
+            self.fig.canvas.draw()
+        return seq_message

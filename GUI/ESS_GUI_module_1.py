@@ -78,8 +78,16 @@ class Module_1:
         self.open_loop_stop = None # control open Loop button
         
         # module message/label
-    
+        battery_font = tkFont.Font(family = "Lucida Grande", size = 9)
+        label_font = tkFont.Font(family = "Lucida Grande", size = 12)
+        warning_font = tkFont.Font(family = "Lucida Grande", size = 24)
+        self.battery_array = []
+        self.percent = 0
+        self.charging = False
+        
         # parameters for buttons and frames
+        
+        
         #create all the buttons onto to the main window
         button_width = 10
         button_big_height = 8
@@ -89,7 +97,7 @@ class Module_1:
         # setup Serial port- 
          ## Graphing Frame and fake plot
         self.graph_frame = Frame(self.root, background = "white")
-        self.graph_frame.grid(row = 2, column = 0, columnspan = 7, padx = 1, pady = 3, sticky = sticky_to)
+        self.graph_frame.grid(row = 2, column = 0, columnspan = 8, padx = 1, pady = 3, sticky = sticky_to)
         
         #initalize figure
         self.fig = plt.figure()
@@ -154,8 +162,97 @@ class Module_1:
 
         
         # allow buttons and frames to resize with the resizing of the root window
-        self.root.grid_columnconfigure((0,1,2,3,4,5,6),weight = 1)
+        self.root.grid_columnconfigure((0,1,2,3,4,5,6,7),weight = 1)
         self.root.grid_rowconfigure((0,1,2),weight = 1)
+        
+        
+        self.battery_frame = Frame(self.root, bg = 'sky blue', width = 4)
+        self.battery_frame.grid(row = 1, column = 7, padx = (0,1), pady = 1, sticky = 'nsew')
+        
+        battery_width = 8
+        
+        self.battery_label_1 = Label(self.battery_frame, bg = "green", height = 1, width = battery_width)
+        self.battery_label_1.grid(row = 0, column = 0, padx = 1, sticky = 'nsew')
+        
+        self.battery_label_2 = Label(self.battery_frame, text = "%", font = battery_font, height = 2, bg = "green", width = battery_width)
+        self.battery_label_2.grid(row = 1, column = 0, padx = 1, sticky = 'nsew')
+        
+        self.battery_label_3 = Label(self.battery_frame, bg = "green", height = 1,width = battery_width)
+        self.battery_label_3.grid(row = 2, column = 0, padx = 1, sticky = 'nsew')
+        
+        self.battery_label_4 = Label(self.battery_frame, bg = "green",height = 1, width = battery_width)
+        self.battery_label_4.grid(row = 3, column = 0, padx = 1, sticky = 'nsew')
+        
+        self.battery_frame.grid_rowconfigure((0,1,2,3),weight = 1)
+        self.battery_frame.grid_columnconfigure((0),weight = 1)
+        
+        # show module connected
+        #messagebox.showinfo('Module #','Module 0: Base ESS System connected (No attachments)')
+        
+        # check battery percent from arduino
+        def battery_percent_check():
+            self.percent = self.func.battery_check()
+            self.charging = False
+            # check for charging and then add percent to array for averaging
+            if int(self.percent) == 1000:
+                self.charging = True
+            self.battery_array.append(int(self.percent))
+            if len(self.battery_array) > 10:
+                del self.battery_array[0]
+            
+            #average battery_array
+            self.percent = int(sum(self.battery_array)/(len(self.battery_array)))
+            
+            if self.charging:
+                self.battery_label_1.configure(bg = 'green')
+                self.battery_label_2.configure(font = battery_font, text = "Charging", bg = 'green')
+                self.battery_label_3.configure(bg = 'green')
+                self.battery_label_4.configure(bg = 'green')
+            else:
+                if int(self.percent) >=75:
+                    self.battery_label_1.configure(bg = 'green')
+                    self.battery_label_2.configure(font = battery_font, text = str(self.percent) + " %", bg = 'green')
+                    self.battery_label_3.configure(bg = 'green')
+                    self.battery_label_4.configure(bg = 'green')
+                
+                elif int(self.percent) <75 and int(self.percent) >= 50:
+                    self.battery_label_2.configure(font = battery_font, text = str(self.percent) + " %",bg = 'green')
+                    self.battery_label_1.configure(bg = 'red')
+                    self.battery_label_3.configure(bg = 'green')
+                    self.battery_label_4.configure(bg = 'green')
+                    
+                elif int(self.percent) <50 and int(self.percent) >=25:
+                    self.battery_label_1.configure(bg = 'red')
+                    self.battery_label_2.configure(font = battery_font, text = str(self.percent) + " %",bg = 'red')
+                    self.battery_label_3.configure(bg = 'green')
+                    self.battery_label_4.configure(bg = 'green')
+                    
+                elif int(self.percent) < 25 and int(self.percent) >= 15:
+                    self.battery_label_1.configure(bg = 'red')
+                    self.battery_label_2.configure(font = battery_font, text = str(self.percent) + " %",bg = 'red')
+                    self.battery_label_3.configure(bg = 'red')
+                    self.battery_label_4.configure(bg = 'yellow')
+                else:
+                    self.battery_label_1.configure(bg = 'red')
+                    self.battery_label_2.configure(font = battery_font, text = "LOW",bg = 'red')
+                    self.battery_label_3.configure(bg = 'red')
+                    self.battery_label_4.configure(bg = 'red')
+                    
+                    error_top = Toplevel(self.root, bg = "red")
+                    message = Label(error_top, bg = "white", text = "Low Battery! Plug In device and Save Data", font = warning_font, wraplength = 250)
+                    message.grid(row = 0, column = 0, padx = 10, pady = 10)
+                    error_top.title("Warning")
+                    error_top.lift()
+                    
+                    error_top.after(3000, error_top.destroy)
+
+
+            try:
+                self.root.after(10000, battery_percent_check)
+            except:
+                pass
+            
+        battery_percent_check()
         
         # show module connected
         #messagebox.showinfo('Module #','Module 1: ESS Scanning Module Connected')

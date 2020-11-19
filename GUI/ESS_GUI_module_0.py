@@ -25,7 +25,7 @@ import time
 import pandas as pd
 import csv
 
-### matplotlib used for plotting data to a canvas 
+### matplotlib used for plotting data to a canvas
 from matplotlib.backends.backend_tkagg import (
     FigureCanvasTkAgg, NavigationToolbar2Tk)
 # Implement the default Matplotlib key bindings.
@@ -66,7 +66,7 @@ class Module_0:
         global settings_file
         self.root = master
         self.root.title("ESS System Interface")
-        full_screen = True
+        full_screen = False
         if full_screen:
             self.root.attributes('-fullscreen', True) # fullscreen on touchscreen
         else:
@@ -75,8 +75,6 @@ class Module_0:
         self.root.configure(bg= "sky blue")
         self.root.minsize(800,480) # min size the window can be dragged to
     
-        #self.root.tk.call('wm','iconphoto', self.root._w, PhotoImage(file = "/home/pi/Desktop/BMO_Lab/ESS_png"))
-        
         self.open_loop_stop = None # control open Loop button
         # parameters for buttons and frames
         #create all the buttons onto to the main window
@@ -87,12 +85,11 @@ class Module_0:
         
         # battery check functions
         self.percent = 0 # battery percent variable
-        self.battery_array = []
         self.charging = False
-        battery_font = tkFont.Font(family = "Lucida Grande", size = 8)
+        self.battery_array = []
+        battery_font = tkFont.Font(family = "Lucida Grande", size = 9)
         label_font = tkFont.Font(family = "Lucida Grande", size = 12)
         warning_font = tkFont.Font(family = "Lucida Grande", size = 24)
-
         module_message = 'Module 0: Base ESS'
         # setup Serial port- 
          ## Graphing Frame and fake plot
@@ -110,10 +107,13 @@ class Module_0:
         #initalize canvas for plotting
         self.canvas = FigureCanvasTkAgg(self.fig, master=self.graph_frame)  # A tk.DrawingArea.
         # create toolbar for canvas
-        toolbar = NavigationToolbar2Tk(self.canvas, self.graph_frame)
-        toolbar.update()
+        NavigationToolbar2Tk.toolitems = [t for t in NavigationToolbar2Tk.toolitems if
+             t[0] not in ('Subplots',)]
+        self.toolbar = NavigationToolbar2Tk(self.canvas, self.graph_frame)
+        self.toolbar.update()
         self.canvas.get_tk_widget().pack(fill = BOTH, expand = True)
         
+        #toolbar.children['Subplots'].pack_forget()
         # create function object for calling functions
         settings_func = _Settings(settings_file)
         
@@ -142,7 +142,7 @@ class Module_0:
         self.settings_button = Button(self.root, text = "Settings", fg = 'black', command = lambda: self.window_popup(self.root), width = button_width, height = button_big_height)
         self.settings_button.grid(row = 0, column = 4, padx = (1,1), sticky = sticky_to)
         
-        self.save_spectra_button = Button(self.root, text = "Save as Spectra", wraplength = 80, fg = 'black', command = self.check_scan_number_save_spectra, width = button_width, height = button_big_height, state = NORMAL)
+        self.save_spectra_button = Button(self.root, text = "Save as Spectra", wraplength = 80, fg = 'black', command = self.func.save_spectra, width = button_width, height = button_big_height, state = NORMAL)
         self.save_spectra_button.grid(row = 0, column = 3, padx = (1,1), sticky = sticky_to)
         
         self.save_reference_button = Button(self.root, text = "Save as Reference", wraplength = 80, fg = 'black', command = self.check_ref_number, width = button_width, height = button_big_height, state = NORMAL)
@@ -171,10 +171,10 @@ class Module_0:
         self.open_loop_button = Button(self.root, text = "Open Loop", fg = 'black',state = NORMAL, command = self.open_loop, width = button_width, height = button_big_height)
         self.open_loop_button.grid(row = 4, column = 0, pady = (5,1), sticky = sticky_to)
         
-        self.sequence_button = Button(self.root, text = "Sequence", fg = 'black', wraplength = 80, command = self.sequence_check, width = button_width, height = button_big_height)
+        self.sequence_button = Button(self.root, text = "Sequence", fg = 'black', wraplength = 80, command = lambda: self.func.sequence(save = False), width = button_width, height = button_big_height)
         self.sequence_button.grid(row = 5, column = 0, sticky = sticky_to)
         
-        self.sequence_save_button = Button(self.root, text = "Sequence and Save", fg = 'black', wraplength = 80, command = self.sequence_check_save, width = button_width, height = button_big_height)
+        self.sequence_save_button = Button(self.root, text = "Sequence and Save", fg = 'black', wraplength = 80, command = lambda: self.func.sequence(save =True), width = button_width, height = button_big_height)
         self.sequence_save_button.grid(row = 6, column = 0, sticky = sticky_to)
         
         #self.scan_button = Button(self.root, text = "Scan", fg = 'black', wraplength = 80, command = lambda: self.func.scan(save = True), width = button_width, height = button_small_height)
@@ -193,10 +193,14 @@ class Module_0:
         self.clear_button.grid(row = 6, column = 4, padx = 1, sticky = sticky_to)
         
         self.add_remove_button = Button(self.root, text = "Add/Remove Plots", fg = 'black', wraplength = 85, state = NORMAL, command = self.func.add_remove_func, width = button_width, height = button_small_height)
-        self.add_remove_button.grid(row = 6, column = 5, padx = 5, pady = 1, sticky = sticky_to)
+        self.add_remove_button.grid(row = 6, column = 5, columnspan = 2, padx = 5, pady = 1, sticky = sticky_to)
         
         module_label = Label(self.root, bg = 'sky blue', text = module_message, wraplength = 80, font = label_font)
-        module_label.grid(row = 6, column = 6, padx = 5, pady = 1, columnspan = 2, sticky = sticky_to)
+        module_label.grid(row = 6, column = 7, padx = 5, pady = 1,  sticky = sticky_to)
+        
+        self.scan_label = Label(self.root, bg = 'sky blue', text = "Scan: ", wraplength = 80)
+        self.scan_label.grid(row = 0, column = 7, padx = 5, pady = 1, sticky = 'nsew')
+        
         
         self.battery_frame = Frame(self.root, bg = 'sky blue', width = 4)
         self.battery_frame.grid(row = 0, column = 7, padx = (0,1), pady = 1, sticky = 'nsew')
@@ -232,9 +236,10 @@ class Module_0:
             if int(self.percent) == 1000:
                 self.charging = True
             self.battery_array.append(int(self.percent))
+            
             if len(self.battery_array) > 10:
                 del self.battery_array[0]
-            
+                
             #average battery_array
             self.percent = int(sum(self.battery_array)/(len(self.battery_array)))
             
@@ -289,15 +294,10 @@ class Module_0:
                 pass
             
         battery_percent_check()
-    def sequence_check_save(self):
-        message = self.func.sequence(save =True)
-        self.scan_label.config(text = message)
-    def sequence_check(self):
-        message = self.func.sequence(save =False)
-        self.scan_label.config(text = message)
         
     def check_scan_number(self):
         message = self.func.acquire(save = True)
+        print(message)
         self.scan_label.config(text = message)
     
     def check_ref_number(self):
@@ -306,10 +306,6 @@ class Module_0:
         
     def check_scan_number_open_file(self):
         message = self.func.OpenFile()
-        self.scan_label.config(text = message)
-        
-    def check_scan_number_save_spectra(self):
-        message = self.func.save_spectra()
         self.scan_label.config(text = message)
    # allows for popup of settings window
     def window_popup(self, master):
@@ -326,13 +322,13 @@ class Module_0:
                         
     def ratio_view_toggle(self):
         if  self.ratio_view_button['relief'] == SUNKEN:
-            self.ratio_view_button.config(bg = 'light grey', relief = RAISED)
             self.open_loop_button.config(state = NORMAL)
             self.autorange_button.config(state = NORMAL)
+            self.ratio_view_button.config(bg = 'light grey', relief = RAISED)
         else:
-            self.ratio_view_button.config(bg = 'gold', relief = SUNKEN)
             self.open_loop_button.config(state = DISABLED)
             self.autorange_button.config(state = DISABLED)
+            self.ratio_view_button.config(bg = 'gold', relief = SUNKEN)
         self.func.ratio_view()
         
     # handle the button appearance and handles openloop functionality
