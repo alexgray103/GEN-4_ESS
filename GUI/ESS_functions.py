@@ -262,7 +262,7 @@ class functions:
         
     def dark_subtract_func(self):
         self.battery_check_flag = True
-        (self.settings, self.wavelength) = self.settings_func.settings_read()
+        #(self.settings, self.wavelength) = self.settings_func.settings_read()
         number_avg = int(self.settings[11][1])
         integ_time =float(self.settings[3][1])
         smoothing_used = int(self.settings[12][1])
@@ -297,7 +297,7 @@ class functions:
     
     def acquire_avg(self, pulses):
         self.battery_check_flag = True        
-        (self.settings, self.wavelength) = self.settings_func.settings_read()
+        #(self.settings, self.wavelength) = self.settings_func.settings_read()
         number_avg = int(self.settings[11][1])
         integ_time =float(self.settings[3][1])
         smoothing_used = int(self.settings[12][1])
@@ -401,9 +401,12 @@ class functions:
                     measurement = 0 # hold measurement number for each burst
                     
                     # take a dark measurement before each burst
-                    self.settings[4][1] = 0
-                    dark = self.acquire_avg(0)
-                    
+                    if dark_subtract ==1:
+                        self.settings[4][1] = 0
+                        dark = self.acquire_avg(0)
+                    else:
+                        dark = np.zeros((288))
+                        
                     for i in range(0,number_measurements_burst):
                         graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
                         pulses = int(self.settings[33+burst][1])
@@ -413,22 +416,24 @@ class functions:
                         #check if we are in ratio view
                         if self.ratio_view_handler:
                             data = np.true_divide(data, self.ref)*100
-                        data = pd.DataFrame(data).to_numpy()
+                        #data = pd.DataFrame(data).to_numpy()
                         
                         plt.plot(self.wavelength, data, label = graph_label)
                         plt.subplots_adjust(bottom = 0.14, right = 0.95)
                         plt.legend(loc = "center right", prop = {'size': 6})
                         
-                        scan_message = "Scan: " + str(self.scan_number)
-                        self.scan_number = self.scan_number + 1
+                        
                         measurement = measurement+1 
                         
                         if save:
                             df_data_array = pd.DataFrame(data)
                             self.df['Scan %d' % (self.scan_number)] = df_data_array
+                            scan_message = "Scan: " + str(self.scan_number)
+                            self.scan_number = self.scan_number + 1
+                    time.sleep(burst_delay)
                     self.settings[4][1] = dark_subtract
                     self.fig.canvas.draw()
-                    time.sleep(burst_delay)
+                    
                 # after all data is taken save to sequence csv
                 if save:
                     self.df.to_csv(self.save_file, mode = 'w', index = False)

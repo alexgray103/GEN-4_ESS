@@ -26,12 +26,12 @@ def spectrometer_disconnect():
 def run_program():
     sleep(2.5) # wait for a little to initialize serial connection
 
-    ser.write(b'module\n')
+    ser.write(b'module\n') 
     module = int(ser.readline().decode()) # read in the module number
+    
     print(module)
     root = Tk()
     
-
     if module == 0:
         app = Module_0(root)
         
