@@ -142,7 +142,7 @@ class Module_0:
         self.settings_button = Button(self.root, text = "Settings", fg = 'black', command = lambda: self.window_popup(self.root), width = button_width, height = button_big_height)
         self.settings_button.grid(row = 0, column = 4, padx = (1,1), sticky = sticky_to)
         
-        self.save_spectra_button = Button(self.root, text = "Save as Spectra", wraplength = 80, fg = 'black', command = self.func.save_spectra, width = button_width, height = button_big_height, state = NORMAL)
+        self.save_spectra_button = Button(self.root, text = "Save as Spectra", wraplength = 80, fg = 'black', command = self.check_spectra, width = button_width, height = button_big_height, state = NORMAL)
         self.save_spectra_button.grid(row = 0, column = 3, padx = (1,1), sticky = sticky_to)
         
         self.save_reference_button = Button(self.root, text = "Save as Reference", wraplength = 80, fg = 'black', command = self.check_ref_number, width = button_width, height = button_big_height, state = NORMAL)
@@ -305,6 +305,10 @@ class Module_0:
     
     def check_ref_number(self):
         message = self.func.save_reference()
+        self.scan_label.config(text = message)
+    
+    def check_spectra(self):
+        message = self.func.save_spectra()
         self.scan_label.config(text = message)
         
     def check_seq_number(self):

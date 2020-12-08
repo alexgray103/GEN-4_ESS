@@ -119,14 +119,16 @@ class functions:
         return ref_message
     
     def save_spectra(self):
+        scan_message = None
         if self.save_file is not None:
             temp_data = pd.DataFrame(np.loadtxt(self.acquire_file, delimiter = ','))
             self.df['Scan_ID %d' % self.scan_number] = temp_data
             self.df.to_csv(self.save_file, mode = 'w', index = False)
+            scan_message = "Scan: " + str(self.scan_number)
             self.scan_number = self.scan_number +1 
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save Spectra')
-        
+        return scan_message 
     def add_remove_func(self):
         self.add_remove_top.create_add_remove(self.save_file)
         
