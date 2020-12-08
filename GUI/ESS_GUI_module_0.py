@@ -66,7 +66,7 @@ class Module_0:
         global settings_file
         self.root = master
         self.root.title("ESS System Interface")
-        full_screen = False
+        full_screen = True
         if full_screen:
             self.root.attributes('-fullscreen', True) # fullscreen on touchscreen
         else:
@@ -174,7 +174,7 @@ class Module_0:
         self.sequence_button = Button(self.root, text = "Sequence", fg = 'black', wraplength = 80, command = lambda: self.func.sequence(save = False), width = button_width, height = button_big_height)
         self.sequence_button.grid(row = 5, column = 0, sticky = sticky_to)
         
-        self.sequence_save_button = Button(self.root, text = "Sequence and Save", fg = 'black', wraplength = 80, command = lambda: self.func.sequence(save =True), width = button_width, height = button_big_height)
+        self.sequence_save_button = Button(self.root, text = "Sequence and Save", fg = 'black', wraplength = 80, command = self.check_seq_number, width = button_width, height = button_big_height)
         self.sequence_save_button.grid(row = 6, column = 0, sticky = sticky_to)
         
         #self.scan_button = Button(self.root, text = "Scan", fg = 'black', wraplength = 80, command = lambda: self.func.scan(save = True), width = button_width, height = button_small_height)
@@ -201,7 +201,7 @@ class Module_0:
         self.scan_label = Label(self.root, bg = 'sky blue', text = "Scan: ", wraplength = 80)
         self.scan_label.grid(row = 0, column = 7, padx = 5, pady = 1, sticky = 'nsew')
         
-        
+        '''
         self.battery_frame = Frame(self.root, bg = 'sky blue', width = 4)
         self.battery_frame.grid(row = 0, column = 7, padx = (0,1), pady = 1, sticky = 'nsew')
         
@@ -242,7 +242,10 @@ class Module_0:
                 
             #average battery_array
             self.percent = int(sum(self.battery_array)/(len(self.battery_array)))
-            
+            if self.percent >100:
+                self.percent = 100
+            elif self.percent < 0:
+                self.percent = 1
             if self.charging:
                 self.battery_label_1.configure(bg = 'green')
                 self.battery_label_2.configure(font = battery_font, text = "Charging", bg = 'green')
@@ -294,7 +297,7 @@ class Module_0:
                 pass
             
         battery_percent_check()
-        
+        '''
     def check_scan_number(self):
         message = self.func.acquire(save = True)
         print(message)
@@ -304,6 +307,9 @@ class Module_0:
         message = self.func.save_reference()
         self.scan_label.config(text = message)
         
+    def check_seq_number(self):
+        message = self.func.sequence(save=True)
+        self.scan_label.config(text = message)
     def check_scan_number_open_file(self):
         message = self.func.OpenFile()
         self.scan_label.config(text = message)

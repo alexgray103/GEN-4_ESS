@@ -105,12 +105,15 @@ class settings_popup_window:
         #settings_button_frame.place(x = 585, y = 340)
         settings_button_frame.grid(row = 3, column = 2, sticky = sticky_to, padx = 2, pady = 2)
         
-        self.ip_adress = str((check_output(['hostname', '-I'])).decode())
-        if len(self.ip_adress) == 1:
-            self.ip_adress = "Not Connected to Hotspot"
+        self.ip_address = str((check_output(['hostname', '-I'])).decode())
+        
+        if len(self.ip_address) == 1:
+            self.ip_address = "Not Connected to Hotspot"
         else:
-            self.ip_adress = "IP Adress: " + self.ip_adress
-        self.ip_label = Label(settings_button_frame, bg = 'sky blue', text = self.ip_adress)
+            self.ip_address = self.ip_address.split()
+            self.ip_address = self.ip_address[0]
+            self.ip_address = "IP Address: " + self.ip_address
+        self.ip_label = Label(settings_button_frame, bg = 'sky blue', text = self.ip_address)
         self.ip_label.grid(row = 0 , column = 0, sticky = sticky_to, columnspan = 3)
         
         quit_button = Button(settings_button_frame, text = "Back", fg = 'Red', command = self.settings_popup.destroy, width = 9, height = 3)
@@ -285,56 +288,56 @@ class settings_popup_window:
         self.a_0 = StringVar()
         self.a_0.set(a_0)
         
-        a0_button = Button(wavelength_pixel_frame, text = '\u03B1\u2080 : ', fg = fground, bg = button_background,
+        a0_button = Button(wavelength_pixel_frame,state = DISABLED, text = '\u03B1\u2080 : ', fg = fground, bg = button_background,
                            font = myfont,command = lambda: self.numpad_popup(self.settings_popup, 15))
         a0_button.grid(row = 1, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        a0_entry = Entry(wavelength_pixel_frame, textvariable = self.a_0, width = 16)
+        a0_entry = Entry(wavelength_pixel_frame, state = DISABLED, textvariable = self.a_0, width = 16)
         a0_entry.grid(row = 1, column = 1, padx = 8, sticky = sticky_to)
         
         self.b_1 = StringVar()
         self.b_1.set(b_1)
-        b1_button = Button(wavelength_pixel_frame, text = "\u03B2\u2080 : ", fg = fground, bg = button_background,
+        b1_button = Button(wavelength_pixel_frame,state = DISABLED, text = "\u03B2\u2080 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 16))
         b1_button.grid(row = 2, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        b1_entry = Entry(wavelength_pixel_frame, textvariable = self.b_1, width = 16)
+        b1_entry = Entry(wavelength_pixel_frame,state = DISABLED, textvariable = self.b_1, width = 16)
         b1_entry.grid(row = 2, column = 1, padx = 8, sticky = sticky_to)
         
         self.b_2 = StringVar()
         self.b_2.set(b_2)
-        b2_button = Button(wavelength_pixel_frame, text = "\u03B2\u2081 : ", fg = fground, bg = button_background,
+        b2_button = Button(wavelength_pixel_frame,state = DISABLED, text = "\u03B2\u2081 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 17))
         b2_button.grid(row = 3, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        b2_entry = Entry(wavelength_pixel_frame, textvariable = self.b_2, width = 16)
+        b2_entry = Entry(wavelength_pixel_frame,state = DISABLED, textvariable = self.b_2, width = 16)
         b2_entry.grid(row = 3, column = 1, padx = 8, sticky = sticky_to)
         b2_exp_label = Label(wavelength_pixel_frame, text = "e-03", fg = fground, bg= "white", justify = CENTER)
         b2_exp_label.grid(row = 3, column = 2,  sticky = sticky_to)
         
         self.b_3 = StringVar()
         self.b_3.set(b_3)
-        b3_button = Button(wavelength_pixel_frame, text = "\u03B2\u2082 :", fg = fground, bg = button_background,
+        b3_button = Button(wavelength_pixel_frame,state = DISABLED, text = "\u03B2\u2082 :", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 18))
         b3_button.grid(row = 4, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        b3_entry = Entry(wavelength_pixel_frame, textvariable = self.b_3, width = 16)
+        b3_entry = Entry(wavelength_pixel_frame,state = DISABLED, textvariable = self.b_3, width = 16)
         b3_entry.grid(row = 4, column = 1, padx = 8, sticky = sticky_to)
         b3_exp_label = Label(wavelength_pixel_frame, text = "e-06", fg = fground, bg= "white", justify = CENTER)
         b3_exp_label.grid(row = 4, column = 2,  sticky = sticky_to)
         
         self.b_4 = StringVar()
         self.b_4.set(b_4)
-        b4_button = Button(wavelength_pixel_frame, text = "\u03B2\u2083 : ", fg = fground, bg = button_background,
+        b4_button = Button(wavelength_pixel_frame,state = DISABLED, text = "\u03B2\u2083 : ", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 19))
         b4_button.grid(row = 5, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        b4_entry = Entry(wavelength_pixel_frame, textvariable = self.b_4, width = 16)
+        b4_entry = Entry(wavelength_pixel_frame,state = DISABLED, textvariable = self.b_4, width = 16)
         b4_entry.grid(row = 5, column = 1, padx = 8, sticky = sticky_to)
         b4_exp_label = Label(wavelength_pixel_frame, text = "e-09", fg = fground, bg= "white", justify = CENTER)
         b4_exp_label.grid(row = 5, column = 2, sticky = sticky_to)
         
         self.b_5 = StringVar()
         self.b_5.set(b_5)
-        b5_button = Button(wavelength_pixel_frame, text = "\u03B2\u2084 :", fg = fground, bg = button_background,
+        b5_button = Button(wavelength_pixel_frame,state = DISABLED, text = "\u03B2\u2084 :", fg = fground, bg = button_background,
                            font = myfont, command = lambda: self.numpad_popup(self.settings_popup, 20))
         b5_button.grid(row = 6, column = 0, pady = 2, padx = 3, sticky = sticky_to)
-        b5_entry = Entry(wavelength_pixel_frame, textvariable = self.b_5, width = 16)
+        b5_entry = Entry(wavelength_pixel_frame, state = DISABLED, textvariable = self.b_5, width = 16)
         b5_entry.grid(row = 6, column = 1, padx = 8, sticky = sticky_to)
         b5_exp_label = Label(wavelength_pixel_frame, text = "e-12", fg = fground, bg= "white", justify = CENTER)
         b5_exp_label.grid(row = 6, column = 2, sticky = sticky_to)
@@ -480,6 +483,9 @@ class settings_popup_window:
         self.settings_popup.destroy()
         
     def default(self):
+        settings_open = open(self.settings_file, 'r')
+        csv_reader = csv.reader(settings_open, delimiter=',')
+        settings = list(csv_reader)
         self.acquisition_number.set('1')
         self.pulse_rate.set('60')
         self.integ_time.set('120')
@@ -493,12 +499,12 @@ class settings_popup_window:
         self.smoothing_used.set('1')
         self.step_size.set('500')
         self.grid_size.set('10')
-        self.a_0.set('302.0536145')
-        self.b_1.set('2.698308925')
-        self.b_2.set('1.399704611')
-        self.b_3.set('-41.00473430')
-        self.b_4.set('148.5342495')
-        self.b_5.set('-150.6933832')
+        self.a_0.set(str(float(settings[15][1])))
+        self.b_1.set(str(float(settings[16][1])))
+        self.b_2.set(str(float(settings[17][1])))
+        self.b_3.set(str(float(settings[18][1])))
+        self.b_4.set(str(float(settings[19][1])))
+        self.b_5.set(str(float(settings[20][1])))
         self.burst_delay_number.set('1.0')
         self.burst_number.set('1')
         self.measurement_burst = str(5)

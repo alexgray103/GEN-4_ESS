@@ -317,6 +317,7 @@ class functions:
             # tell spectromter to send data
             data = 0
             for x in range(0,number_avg,1): #take scans then average
+                
                 self.ser.write(b"read\n") # tell arduino to read spectrometer
                 data_read = self.ser.readline()
                 data_temp = np.array([int(p) for p in data_read.split(b",")])
@@ -362,11 +363,12 @@ class functions:
                 data = pd.read_csv(self.acquire_file, header = None)
                 
             plt.clf()
-            self.plotting(data, "Scan: " +str(self.scan_number))
+            self.plotting(data, "Scan: " +str(self.scan_number-1))
         return scan_message
     
     def open_loop_function(self):
         if self.ser.is_open:
+            (self.settings, self.wavelength) = self.settings_func.settings_read()
             plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
             plt.ylabel('ADC counts')
             plt.xlabel('Wavelength (nm)')
@@ -404,9 +406,10 @@ class functions:
                     if dark_subtract ==1:
                         self.settings[4][1] = 0
                         dark = self.acquire_avg(0)
+                        #self.settings[4][1] = 1
                     else:
                         dark = np.zeros((288))
-                        
+                    
                     for i in range(0,number_measurements_burst):
                         graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
                         pulses = int(self.settings[33+burst][1])
@@ -416,27 +419,27 @@ class functions:
                         #check if we are in ratio view
                         if self.ratio_view_handler:
                             data = np.true_divide(data, self.ref)*100
-                        #data = pd.DataFrame(data).to_numpy()
+                        data = pd.DataFrame(data).to_numpy()
                         
                         plt.plot(self.wavelength, data, label = graph_label)
                         plt.subplots_adjust(bottom = 0.14, right = 0.95)
                         plt.legend(loc = "center right", prop = {'size': 6})
                         
                         
-                        measurement = measurement+1 
                         
                         if save:
                             df_data_array = pd.DataFrame(data)
-                            self.df['Scan %d' % (self.scan_number)] = df_data_array
-                            scan_message = "Scan: " + str(self.scan_number)
+                            self.df['Scan_ID %d' % (self.scan_number)] = df_data_array
+                            
                             self.scan_number = self.scan_number + 1
-                    time.sleep(burst_delay)
+                            measurement = measurement+1 
                     self.settings[4][1] = dark_subtract
                     self.fig.canvas.draw()
-                    
+                    time.sleep(burst_delay)
                 # after all data is taken save to sequence csv
                 if save:
                     self.df.to_csv(self.save_file, mode = 'w', index = False)
+                scan_message = "Scan: " + str(self.scan_number-1)
         return scan_message
     
     def autorange(self):
@@ -454,7 +457,7 @@ class functions:
         # select plots they wish to save with a popup window
         if self.ser.is_open:
             for x in range(0,max_autorange): 
-                self.settings[1][1] = pulses
+                self.settings[1][1] = int(pulses)
                 # write settings array to csv 
                 self.settings_func.settings_write(self.settings)
                 data = self.acquire_avg(pulses)
@@ -468,7 +471,7 @@ class functions:
                     else: 
                         messagebox.showinfo("Pulses", "Max # of Pulses reached")
                 else:
-                    self.settings[1][1] = pulses-1
+                    self.settings[1][1] = int(pulses-1)
                     messagebox.showinfo("Pulses", str(self.settings[1][1]) + "  Pulses to reach threshold")
                     break
             self.settings_func.settings_write(self.settings)
@@ -658,7 +661,7 @@ class functions:
                 data = pd.read_csv(self.acquire_file, header = None)
                 
             plt.clf()
-            self.plotting(data, "Scan: " +str(self.scan_number))
+            self.plotting(data, "Scan: " +str(self.scan_number-1))
         return scan_message
     
     def water_sequence(self, save):
