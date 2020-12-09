@@ -201,7 +201,7 @@ class Module_0:
         self.scan_label = Label(self.root, bg = 'sky blue', text = "Scan: ", wraplength = 80)
         self.scan_label.grid(row = 0, column = 7, padx = 5, pady = 1, sticky = 'nsew')
         
-        '''
+      
         self.battery_frame = Frame(self.root, bg = 'sky blue', width = 4)
         self.battery_frame.grid(row = 0, column = 7, padx = (0,1), pady = 1, sticky = 'nsew')
         
@@ -297,7 +297,7 @@ class Module_0:
                 pass
             
         battery_percent_check()
-        '''
+        
     def check_scan_number(self):
         message = self.func.acquire(save = True)
         print(message)
