@@ -82,6 +82,7 @@ class add_remove_popup:
             try:
                 self.ref_ratio = lb_reference.get(lb_reference.curselection()) # get reference selected and save name
                 self.ref_ratio_idx = lb_reference.curselection()
+                
             except:
                 self.ref_ratio_idx = None
                 self.ref_ratio = None

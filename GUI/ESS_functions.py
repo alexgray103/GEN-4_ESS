@@ -47,7 +47,7 @@ class functions:
         self.battery_percent = 100
         
         # attributes to select data to be plotted
-        self.ref = np.ones((288,1))*1000 # temporary reference
+        self.ref = np.ones((288))*1000 # temporary reference
         self.scan_ref = None
         
         # plotting view attributes
@@ -110,7 +110,7 @@ class functions:
             self.df.to_csv(self.save_file, mode = 'w', index = False)
             self.reference_number = self.reference_number +1 
             ref_message = "Ref #: " + str(self.reference_number-1)
-            self.ref = self.ref.to_numpy()
+            self.ref = self.ref.to_numpy().reshape((288))
             plt.clf()
             self.plotting(np.zeros((288)), None) # send a fake value to plot updated ref
             
@@ -128,7 +128,8 @@ class functions:
             self.scan_number = self.scan_number +1 
         else:
             messagebox.showerror('Error', 'No Save File selected, create save file to save Spectra')
-        return scan_message 
+        return scan_message
+    
     def add_remove_func(self):
         self.add_remove_top.create_add_remove(self.save_file)
         
@@ -173,20 +174,29 @@ class functions:
         
     def plotting(self, data, label_view):
         
-        data = pd.DataFrame(data).to_numpy()
+        data = pd.DataFrame(data).to_numpy().reshape((288))
         self.plot_labels_axis() # configure axis
         if self.ratio_view_handler:
             plt.clf()
             self.plot_labels_axis() # configure axis
             
+            if self.add_remove_top.ref_ratio is not None:
+                self.ref = self.df[[self.add_remove_top.ref_ratio]].to_numpy()
+                self.ref = self.ref.reshape((288))
+            try:
+                self.ref = self.ref.to_numpy().reshape((288))
+            except:
+                pass
+
             data = np.true_divide(data, self.ref)*100
             if self.add_remove_top.data_headers is not None:
-
                 data_sel = pd.read_csv(self.save_file, header = 0)
                 data_sel = data_sel[self.add_remove_top.data_headers]
-                data_sel = np.true_divide(data_sel,self.ref)*100
                 for col in range(0, len(self.add_remove_top.data_headers)):
-                    plt.plot(self.wavelength, data_sel.iloc[:,col], label = self.add_remove_top.data_headers[col])
+                    data_new = data_sel[str(self.add_remove_top.data_headers[col])]
+                    data_new = data_new.to_numpy()
+                    data_plot = np.true_divide(data_new, self.ref)*100
+                    plt.plot(self.wavelength, data_plot, label = self.add_remove_top.data_headers[col])
                 #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
         else:
             if self.add_remove_top.data_headers is not None:
@@ -199,7 +209,8 @@ class functions:
                 #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop = {'size': 6})
             else:
                 pass
-            try: 
+            
+            try:
                 self.ref = self.ref.to_numpy()
                 plt.plot(self.wavelength,self.ref, 'r--', label = 'Reference')
             except:
@@ -223,6 +234,12 @@ class functions:
         
             open(self.save_file, 'w+')
             
+            #reset add_remove attributes
+            self.add_remove_top.data_headers = None
+            self.add_remove_top.data_headers_idx = None
+            self.add_remove_top.ref_ratio_idx = None
+            self.add_remove_top.ref_ratio = None
+            
             #create data frame for saving data to csv files
             self.df = pd.DataFrame(self.wavelength)
             self.df.columns = ['Wavelength (nm)']
@@ -239,15 +256,7 @@ class functions:
         self.plot_labels_axis()
         
         if self.add_remove_top.data_headers is not None:
-            self.plotting(np.zeros((288,1)), None)
-            #for col in range(0,len(self.add_remove_top.data_headers)):
-            #self.plotting(self.df[self.add_remove_top.data_headers[col]])
-            #self.plotting(self.df[self.add_remove_top.data_headers])
-            
-            #plt.plot(self.wavelength, self.df[self.add_remove_top.data_headers])
-            #plt.legend(self.add_remove_top.data_headers, loc = "upper right", prop ={'size': 6})
-            #plt.subplots_adjust(bottom =0.14, right = 0.95)
-            #self.fig.canvas.draw()
+            self.plotting(np.zeros((288)), None)
         else:
             messagebox.showerror('Error','No data selected. Select data to plot')
     
@@ -266,15 +275,16 @@ class functions:
         self.battery_check_flag = True
         #(self.settings, self.wavelength) = self.settings_func.settings_read()
         number_avg = int(self.settings[11][1])
-        integ_time =float(self.settings[3][1])
+        integ_time = float(self.settings[3][1])
         smoothing_used = int(self.settings[12][1])
         smoothing_width = int(self.settings[8][1])
         pulses = int(self.settings[1][1])
         dark_subtract = int(self.settings[4][1])
-        
+        pulse_rate = int(self.settings[2][1])
         try:
-            self.ser.write(b"set_integ %0.6f\n" % integ_time)
             self.ser.write(b"pulse 0\n")
+            self.ser.write(b"set_integ %0.6f\n" % integ_time)
+            self.ser.write(b"pulse_rate %0.6f\n" % pulse_rate)
             # tell spectromter to send data
             data = 0
             data_dark = 0
@@ -301,21 +311,22 @@ class functions:
         self.battery_check_flag = True        
         #(self.settings, self.wavelength) = self.settings_func.settings_read()
         number_avg = int(self.settings[11][1])
-        integ_time =float(self.settings[3][1])
+        integ_time = float(self.settings[3][1])
         smoothing_used = int(self.settings[12][1])
         smoothing_width = int(self.settings[8][1])
         dark_subtract = int(self.settings[4][1])
+        pulse_rate = int(self.settings[2][1])
         
         #self.serial_check = self.check_serial() # always check serial before a measurement
         #if self.serial_check:
         if dark_subtract == 1:
             data_dark = self.dark_subtract_func()
         else: 
-            data_dark = np.zeros(288)
+            data_dark = np.zeros((288))
         try:        
             self.ser.write(b"set_integ %0.6f\n" % integ_time)
             self.ser.write(b"pulse %d\n" % pulses)
-                    
+            self.ser.write(b"pulse_rate %0.6f\n" % pulse_rate)        
             # tell spectromter to send data
             data = 0
             for x in range(0,number_avg,1): #take scans then average
@@ -359,13 +370,16 @@ class functions:
                     self.df.to_csv(self.save_file, mode = 'w', index = False)
                     data = self.df[['Scan_ID %d' %self.scan_number]]
                     self.scan_number = 1 + self.scan_number
-                    scan_message = "Scan #: " + str(self.scan_number-1)    
+                    scan_message = "Scan #: " + str(self.scan_number-1)
+                    plt.clf()
+                    self.plotting(data, "Scan: " +str(self.scan_number-1))
             else: # temporary save
                 np.savetxt(self.acquire_file, data, fmt="%d", delimiter=",")
                 data = pd.read_csv(self.acquire_file, header = None)
+                plt.clf()
+                self.plotting(data, "Scan: " +str(self.scan_number))
                 
-            plt.clf()
-            self.plotting(data, "Scan: " +str(self.scan_number-1))
+            
         return scan_message
     
     def open_loop_function(self):
@@ -376,7 +390,10 @@ class functions:
             plt.xlabel('Wavelength (nm)')
             
             plt.clf()
+            dark_subtract = int(self.settings[4][1])
+            self.settings[4][1] = 0
             data = self.acquire_avg(0)
+            self.settings[4][1] = dark_subtract
             data = pd.DataFrame(data)
             np.savetxt(self.acquire_file, data, fmt="%d", delimiter= ",")
             self.plotting(data, "Open Loop")
@@ -393,31 +410,36 @@ class functions:
                 plt.clf()
                 number_avg = int(self.settings[11][1])
                 integ_time = int(self.settings[3][1])
-                smoothing_used = int(self.settings[12][1])
-                smoothing_width = int(self.settings[8][1])
                 dark_subtract = int(self.settings[4][1])
                 burst_number = int(self.settings[22][1])
                 burst_delay = float(self.settings[21][1])
+                                
                 plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
                 self.plot_labels_axis() # configure axis
                 for burst in range(0,burst_number):
                     number_measurements_burst = int(self.settings[23+burst][1])
                     measurement = 0 # hold measurement number for each burst
+                    pulses = int(self.settings[33+burst][1])
                     
+                    #set integ time
+                    self.settings[3][1] = float(120 + (pulses - 1)*(1000000/int(self.settings[2][1])))
+                    if pulses > 1:
+                        self.settings[3][1] = float(self.settings[3][1] + 1000000/int(self.settings[2][1]))
                     # take a dark measurement before each burst
                     if dark_subtract ==1:
                         self.settings[4][1] = 0
+                        #dark = self.dark_subtract_func()
                         dark = self.acquire_avg(0)
-                        #self.settings[4][1] = 1
                     else:
                         dark = np.zeros((288))
                     
                     for i in range(0,number_measurements_burst):
                         graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
-                        pulses = int(self.settings[33+burst][1])
                         data = []
+                        pulses = int(self.settings[33+burst][1])
                         data = self.acquire_avg(pulses)
                         data = data - dark
+                        data = np.where(data<=0,0,data)
                         #check if we are in ratio view
                         if self.ratio_view_handler:
                             data = np.true_divide(data, self.ref)*100
@@ -436,6 +458,7 @@ class functions:
                             self.scan_number = self.scan_number + 1
                             measurement = measurement+1 
                     self.settings[4][1] = dark_subtract
+                    self.settings[3][1] = integ_time
                     self.fig.canvas.draw()
                     time.sleep(burst_delay)
                 # after all data is taken save to sequence csv
@@ -505,7 +528,9 @@ class functions:
                 if result == []:
                         break
                 self.reference_number = self.reference_number+1
-                self.ref = pd.DataFrame(self.df['Reference %d' %(self.reference_number-1)])
+                self.ref = pd.DataFrame(self.df['Reference %d' %(self.reference_number-1)]).to_numpy()
+            self.ref = self.ref.reshape((288))
+            
 
             #reset indexing attrubtues for later use in
             #add remove functions 
@@ -691,7 +716,7 @@ class functions:
                     graph_label = 'Burst ' + str(burst+1) + ' measurement ' + str(i+1)
                     pulses = int(self.settings[33+burst][1])
                     data = []
-                    data = self.acquire_avg(pulses).reshape((288,1))
+                    data = self.acquire_avg(pulses).reshape((288))
                     data = pd.DataFrame(data)
                     if self.ratio_view_handler:
                         data = (data/self.ref)*100

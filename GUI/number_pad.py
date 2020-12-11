@@ -54,6 +54,7 @@ class Num_Pad:
                     if button_number == 1 and int(num.get()) == 0:
                         settings[3][1] = 100
                     elif button_number == 1 and int(num.get()) != 0:
+                        #calculate integ time 
                         settings[3][1] = 120 + (int(settings[1][1]) - 1)*(1000000/int(settings[2][1]))
                     settings[button_number][1]  = int(num.get())
                 else:
