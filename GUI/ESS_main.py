@@ -1,5 +1,5 @@
 '''
-main.py is where the actual main program is called. Each module class is called in the first lines.
+main.py is where the actual GUI program is called. Each module class is called in the first lines.
 serial port is opened between the arduino and RPi in order to get the module number connected to run the specific program
 '''
 
