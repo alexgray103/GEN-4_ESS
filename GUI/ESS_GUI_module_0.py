@@ -1,3 +1,15 @@
+'''
+Each module script is made of a module class that enables creation of a matplotlib figure, and several buttons for ESS functionality 
+each button and graph is placed using tkinter built in "grid" functionality. There is a special function to enable resizing of all the buttons 
+row_configure and column_configure with the number of rows and columns in each grid frame. each function is attached to a function either on the functions.py script 
+or a function directly on this script. 
+
+
+
+'''
+
+
+
 ## tkinter used for widgets that make up GUI framework
 from tkinter import *
 import numpy as np #https://scipy-lectures.org/intro/numpy/operations.html
@@ -131,7 +143,7 @@ class Module_0:
         self.root.grid_columnconfigure((0,1,2,3,4,5,6,7),weight = 1)
         self.root.grid_rowconfigure((0,1,2,3,4,5,6),weight = 1)
         
-        
+        # __________________________    Create all buttons for the main GUI page _______________________________ #
         # with all their corresponding functions (command)
         self.quit_button = Button(self.root, text = "Quit", fg = 'Red', command = self.quit_button, width = button_width, height = button_big_height)
         self.quit_button.grid(row = 0, column = 6, padx = 1, sticky = sticky_to)
@@ -198,9 +210,12 @@ class Module_0:
         module_label = Label(self.root, bg = 'sky blue', text = module_message, wraplength = 80, font = label_font)
         module_label.grid(row = 6, column = 7, padx = 5, pady = 1,  sticky = sticky_to)
         
+        
+        #### Provide scan number in the top right of the GUI page
         self.scan_label = Label(self.root, bg = 'sky blue', text = "Scan: ", wraplength = 80)
         self.scan_label.grid(row = 0, column = 7, padx = 5, pady = 1, sticky = 'nsew')
         
+        ####### Battery label depending if its the battery powered system
         '''
         self.battery_frame = Frame(self.root, bg = 'sky blue', width = 4)
         self.battery_frame.grid(row = 0, column = 7, padx = (0,1), pady = 1, sticky = 'nsew')
@@ -298,6 +313,8 @@ class Module_0:
             
         battery_percent_check()
         '''
+        
+    #_______________________  functions to return scan number or reference number for "scan label" _________________________ #
     def check_scan_number(self):
         message = self.func.acquire(save = True)
         print(message)
@@ -317,11 +334,15 @@ class Module_0:
     def check_scan_number_open_file(self):
         message = self.func.OpenFile()
         self.scan_label.config(text = message)
+       
+   #_______________________  Settings window popup function _________________________ #    
    # allows for popup of settings window
     def window_popup(self, master):
         self.popup_window = Toplevel(master)
         self.sett_popup = settings_window.settings_popup_window(self.popup_window, master)
-    
+       
+       
+    #_______________________  allow for visual change of the autoscale and ratio view buttons _________________________ #
     # send values to change visualization of data in functions class
     def autoscale_toggle(self):
         if self.autoscale_button['relief'] == SUNKEN:
@@ -341,6 +362,9 @@ class Module_0:
             self.ratio_view_button.config(bg = 'gold', relief = SUNKEN)
         self.func.ratio_view()
         
+        
+    #_______________________  Special handle of open loop function: change color for button press _________________________ #
+    #_______________________  disable buttons that cause issues when open loop is on              _________________________ #
     # handle the button appearance and handles openloop functionality
     def open_loop_state(self):
         if self.open_loop_stop is not None:
