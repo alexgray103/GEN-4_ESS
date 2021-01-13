@@ -17,6 +17,8 @@ from tkinter.filedialog import askopenfilename
 import os
 import matplotlib.pyplot as plt
 
+#allow for control of RPi GPIO pins
+import RPi.GPIO as GPIO
 
 ################# Global Variables ############################
 global settings_file
@@ -45,6 +47,11 @@ class functions:
         self.serial_check = False #variable for flagging serial connection
         self.battery_check_flag = False
         self.battery_percent = 100
+        
+        #setup GPIO for RPi control
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(32, GPIO.OUT)
+        GPIO.setwarnings(False)
         
         # attributes to select data to be plotted
         self.ref = np.ones((288))*1000 # temporary reference
@@ -81,6 +88,12 @@ class functions:
         self.settings_func = _Settings(settings_file)
         (self.settings, self.wavelength) = self.settings_func.settings_read()
         self.add_remove_top = add_remove_popup(self.parent)
+        
+    def tone(self, freq, sleep_time, duty):
+        p = GPIO.PWM(32, freq) # PWM to make sound after measurement
+        p.start(duty)
+        time.sleep(sleep_time/1000) # sleep for given time in mSec
+        p.stop()
         
     def home(self):
         self.ser.write(b"home\n")
@@ -379,7 +392,7 @@ class functions:
                 plt.clf()
                 self.plotting(data, "Scan: " +str(self.scan_number))
                 
-            
+        self.tone(300, 50, 100)
         return scan_message
     
     def open_loop_function(self):
@@ -416,6 +429,9 @@ class functions:
                                 
                 plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
                 self.plot_labels_axis() # configure axis
+                
+                self.tone(300, 50, 100) # make a noise before sequence 
+                
                 for burst in range(0,burst_number):
                     number_measurements_burst = int(self.settings[23+burst][1])
                     measurement = 0 # hold measurement number for each burst
@@ -465,6 +481,10 @@ class functions:
                 if save:
                     self.df.to_csv(self.save_file, mode = 'w', index = False)
                 scan_message = "Scan: " + str(self.scan_number-1)
+        # make a noise two times to signify end of sequence (buzzer)
+        self.tone(300, 40, 100)
+        time.sleep(0.05)
+        self.tone(300,80,100) 
         return scan_message
     
     def autorange(self):
