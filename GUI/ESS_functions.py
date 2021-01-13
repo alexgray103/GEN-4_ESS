@@ -135,7 +135,7 @@ class functions:
         
         if self.add_remove_top.ref_ratio is not None:
             self.ref = self.df[[self.add_remove_top.ref_ratio]].to_numpy() 
-        
+            self.ref = self.ref.reshape((288))
     def ratio_view(self):
         self.ratio_view_handler = not self.ratio_view_handler
     
