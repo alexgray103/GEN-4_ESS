@@ -31,8 +31,11 @@
 #define battery_pin A7
 #define charger_pin A6
 
+// define pump stuff
+#define pump_pin 11
 
-SerialCommand sCmd;     // SerialCommand object
+
+SerialCommand sCmd(Serial);     // SerialCommand object
 
 //#include <eRCaGuy_Timer2_Counter.h> /// used for timing of integration time 
 #include <elapsedMillis.h>  // Integration time calculation
@@ -63,6 +66,8 @@ int step_resolution = 500; // step resolution in microns per step
 unsigned long number_steps = step_resolution*1.6; // the actual number of steps to move desired distance
 int movement_delay = 75; // determines speed of the stepper motors
 
+//pump
+int pump_handler;
 
 void setup() {
   // Test for serial command to make sure there is still connection 
@@ -102,6 +107,9 @@ void setup() {
 
   pinMode(battery_pin, INPUT);
 
+  pinMode(pump_pin, OUTPUT);
+  digitalWrite(pump_pin, LOW);
+  
   //disable device to start with 
   digitalWrite(CS,HIGH); 
   digitalWrite(CLK,LOW); 
@@ -116,29 +124,61 @@ void setup() {
   sCmd.addCommand("read", read_value);   /// read the data
   sCmd.addCommand("pulse", pulse_number); 
   sCmd.addCommand("pulse_rate", pulse_rate_get);
+  sCmd.addCommand("prime_pump", pump_primer);
+  sCmd.addCommand("pump_read", pump_read);
   sCmd.addCommand("home", stepper_home); // get the stepper motors to go home
   sCmd.addCommand("y", y_movement);
   sCmd.addCommand("x", x_movement);
   sCmd.addCommand("step_size", step_size);
   sCmd.addCommand("module", module_get);
   sCmd.addCommand("battery", battery_check);
+  
+  
+  
 }
 
 void loop() {
-  sCmd.readSerial();     // We don't do much, just process serial commands
+  int num_bytes = sCmd.readSerial();      // fill the buffer
+  if (num_bytes > 0){
+    sCmd.processCommand();  // process the command
+  }
   delayMicroseconds(1);
 }
 
 
 /// All function listed below 
+void pump_read() {
+  digitalWrite(pump_pin, HIGH);
+  delay(500);
+  digitalWrite(pump_pin, LOW);
+}
 
+void pump_primer() {
+  int aNumber;
+  char *arg;
+  arg = sCmd.next();
+  if (arg != NULL) {
+    aNumber = atoi(arg);    // Converts a char string to an integer
+    pump_handler = aNumber;
+    
+}
+  if(pump_handler) {
+    digitalWrite(pump_pin, HIGH);
+    
+  }
+  else {
+    digitalWrite(pump_pin, LOW);
+    
+  }
+}
+        
 // Get the module number for the specified attachment 
 void module_get() {
   // read the module detect pins 
   int pin1 = digitalRead(analogpin1);
   int pin2 = digitalRead(analogpin2);
   int pin3 = digitalRead(analogpin3);
-
+ 
   // convert binary to a decimal to send over serial
   int module = pin1 + pin2*2 +pin3*4;
   //Serial.println(pin1);
@@ -161,7 +201,7 @@ void battery_check() {
   
 
   // print battery level to serial
-  //Serial.println(percent);
+  Serial.println(battery_percent);
   //Serial.println(voltage);
 /*
   if (charging) > 10 {
@@ -194,7 +234,7 @@ void y_movement(){
     direction_y = aNumber;
     
   digitalWriteFast(EN_x, HIGH);
-  digitalWriteFast(EN_y, LOW);
+  digitalWriteFast(11, LOW);
   if (direction_y == 0) {
     digitalWriteFast(dir, HIGH);
   }
@@ -220,7 +260,7 @@ void x_movement(){
     int direction_x = aNumber;
     
   digitalWriteFast(EN_x, LOW);
-  digitalWriteFast(EN_y, HIGH);
+  digitalWriteFast(11, HIGH);
   if (direction_x == 0) {
     digitalWriteFast(dir, HIGH);
   }
@@ -240,7 +280,7 @@ void x_movement(){
 void stepper_home() {
   // move y "home" first then move x home til a switch is pulled low
   digitalWriteFast(EN_x, HIGH);
-  digitalWriteFast(EN_y, LOW);
+  digitalWriteFast(11, LOW);
   digitalWriteFast(dir, LOW);
    // keep moving motor until limit switch is hit then move back 1mm in y direction
       elapsedMicros stepper_start = 0;
@@ -266,7 +306,7 @@ void stepper_home() {
 
       
   digitalWriteFast(EN_x, LOW);
-  digitalWriteFast(EN_y, HIGH);
+  digitalWriteFast(11, HIGH);
   digitalWriteFast(dir, LOW);
   
    // keep moving motor until limit switch is hit then move back 4mm in y direction
