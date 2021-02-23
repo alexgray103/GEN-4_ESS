@@ -9,6 +9,7 @@ import numpy as np
 from tkinter import *
 import ESS_GUI_module_0
 import ESS_GUI_module_1
+import ESS_GUI_module_2
 import ESS_GUI_module_3
 import ESS_GUI_module_4
 import ESS_GUI_module_5
@@ -45,7 +46,6 @@ class settings_popup_window:
         self.settings_buttons()     # actually create the buttons
         
         # get ip adress of raspberry Pi for VNC connection
-        
         
     def module_connect(self):
 
@@ -172,7 +172,7 @@ class settings_popup_window:
             except:
                 self.measurement_burst[x] =  str(5) 
                 self.pulse_burst[x] =  str(1) 
-        
+        self.buzzer = int(settings[43][1])
         # Start to create Frames for settings window
         button_background = "white"
         frame_background = 'white'
@@ -226,6 +226,12 @@ class settings_popup_window:
         self.smoothing_used.set(smoothing_used)
         smoothing_entry = Checkbutton(single_acquisition_frame, text = "Smoothing  ", variable = self.smoothing_used)
         smoothing_entry.grid(row = 5, column =1, pady = 2, padx = 14, sticky = sticky_to)
+        
+        self.buzzer_used = IntVar()
+        self.buzzer_used.set(self.buzzer)
+        buzzer_button = Checkbutton(single_acquisition_frame, text = " Buzzer ", variable = self.buzzer_used)
+        buzzer_button.grid(row = 6, column =0, columnspan = 2, pady = 2, padx = 14, sticky = sticky_to)
+        
         
         #__________________AutoRange Frame ____________________
         Auto_range_frame = Frame(self.settings_popup, background = frame_background)
@@ -458,11 +464,14 @@ class settings_popup_window:
         settings[20][1] = float(self.b_5.get())
         settings[21][1] = float(self.burst_delay_number.get())
         settings[22][1] = int(self.burst_number.get())
+
+        
         
         for x in range(0,settings[22][1]):
             settings[23+x][1] = int(self.measurement_burst[x])
             settings[33+x][1] = int(self.pulse_burst[x])
-        
+            
+        settings[43][1] = int(self.buzzer_used.get())
         #save_settings_var() # save settings to main class attributes   
         settings_open = open(self.settings_file, 'w')
         with settings_open:
@@ -508,8 +517,8 @@ class settings_popup_window:
         self.burst_delay_number.set('1.0')
         self.burst_number.set('1')
         self.measurement_burst = str(5)
-        self.pulse_burst = str(1) 
-        
+        self.pulse_burst.set(1)
+        self.buzzer_used.set(1)
         #reset Bursts buttons 
         sticky_to = "nsew"
         self.measurement_burst_button = Button(self.burst_frame, text = self.measurement_burst, fg = 'black', bg = "white", command = lambda: self.numpad_popup(self.settings_popup, 23))
