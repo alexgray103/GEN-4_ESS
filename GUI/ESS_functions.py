@@ -1,6 +1,8 @@
 from tkinter import *
 from tkinter.ttk import *
 import matplotlib.pyplot
+from matplotlib.backends.backend_tkagg import (
+    FigureCanvasTkAgg, NavigationToolbar2Tk)
 import time
 
 import serial
@@ -17,8 +19,9 @@ from tkinter.filedialog import askopenfilename
 import os
 import matplotlib.pyplot as plt
 
-#allow for control of RPi GPIO pins
 import RPi.GPIO as GPIO
+
+
 
 ################# Global Variables ############################
 global settings_file
@@ -48,9 +51,9 @@ class functions:
         self.battery_check_flag = False
         self.battery_percent = 100
         
-        #setup GPIO for RPi control
+        self.buzzer_pin = 7 # set buzzer to pin 7 (GPIO4)
         GPIO.setmode(GPIO.BOARD)
-        GPIO.setup(32, GPIO.OUT)
+        GPIO.setup(self.buzzer_pin, GPIO.OUT)
         GPIO.setwarnings(False)
         
         # attributes to select data to be plotted
@@ -65,6 +68,7 @@ class functions:
         # these are two possible port names for the arduino attachment
         port = "/dev/ttyUSB0"
         port2 = "/dev/ttyUSB1"
+        
         
         try:
             self.ser = serial.Serial(port, baudrate = 115200, timeout = 5)
@@ -84,16 +88,32 @@ class functions:
         self.canvas = _canvas
         self.fig = figure
         
+        
         # create objects for different modules needs for some functions
         self.settings_func = _Settings(settings_file)
         (self.settings, self.wavelength) = self.settings_func.settings_read()
         self.add_remove_top = add_remove_popup(self.parent)
+   
+    def foot_pedal_1(self, event):
+        self.acquire(save =False)
         
-    def tone(self, freq, sleep_time, duty):
-        p = GPIO.PWM(32, freq) # PWM to make sound after measurement
-        p.start(duty)
-        time.sleep(sleep_time/1000) # sleep for given time in mSec
-        p.stop()
+    def foot_pedal_2(self, event):
+        self.pump_prime()
+        
+    
+    def tone(self, sleep_time):
+        # check buzzer setting
+        if int(self.settings[43][1]):
+            GPIO.output(self.buzzer_pin, True) # PWM to make sound after measurement
+            time.sleep(sleep_time/1000) # sleep for given time in mSec
+            GPIO.output(self.buzzer_pin, False) 
+    
+    #take a measurement every 30 seconds for 2 hours
+    def battery_cycle(self):
+        for x in range (0,240):
+            self.acquire(save = False)
+            time.sleep(30)
+            
         
     def home(self):
         self.ser.write(b"home\n")
@@ -362,6 +382,7 @@ class functions:
             #    if data[idx] <=0:
             #        data[idx] = 1
             return data
+        
         except serial.serialutil.SerialException:
             self.battery_check_flag = False
             messagebox.showerror('Error', 'Spectrometer Not connected, Connect and Restart')
@@ -370,7 +391,7 @@ class functions:
     def acquire(self, save):
         scan_message = None
         (self.settings, self.wavelength) = self.settings_func.settings_read()
-        
+        self.battery_check_flag = True
         data = self.acquire_avg(int(self.settings[1][1]))
         if data is not None:
             if save:
@@ -388,11 +409,11 @@ class functions:
                     self.plotting(data, "Scan: " +str(self.scan_number-1))
             else: # temporary save
                 np.savetxt(self.acquire_file, data, fmt="%d", delimiter=",")
-                data = pd.read_csv(self.acquire_file, header = None)
+                data1 = pd.read_csv(self.acquire_file, header = None)
                 plt.clf()
                 self.plotting(data, "Scan: " +str(self.scan_number))
-                
-        self.tone(300, 50, 100)
+        self.battery_check_flag = False
+        self.tone(50)
         return scan_message
     
     def open_loop_function(self):
@@ -429,9 +450,7 @@ class functions:
                                 
                 plt.xlim(int(self.settings[9][1]), int(self.settings[10][1]))
                 self.plot_labels_axis() # configure axis
-                
-                self.tone(300, 50, 100) # make a noise before sequence 
-                
+                self.tone(50)
                 for burst in range(0,burst_number):
                     number_measurements_burst = int(self.settings[23+burst][1])
                     measurement = 0 # hold measurement number for each burst
@@ -481,10 +500,9 @@ class functions:
                 if save:
                     self.df.to_csv(self.save_file, mode = 'w', index = False)
                 scan_message = "Scan: " + str(self.scan_number-1)
-        # make a noise two times to signify end of sequence (buzzer)
-        self.tone(300, 40, 100)
+        self.tone(30)
         time.sleep(0.05)
-        self.tone(300,80,100) 
+        self.tone(80)
         return scan_message
     
     def autorange(self):
@@ -561,8 +579,19 @@ class functions:
             scan_message = "Scan #: " + str(self.scan_number-1)
         return scan_message
     
+    def analyze_spectra(self, data):
+        ## add algorithm for analyzing spectr
+        # placeholder use a simple max value filter
+        score = max(data)
+        
+        return score
+    
+    ############## Module 1 Functions ################
     def new_scan(self):
         global path
+        self.battery_check_flag = True
+        self.home() # home the device before taking a measurement
+        self.battery_check_flag = False
         keyboard = key_pad(self.parent)
         self.df_scan = None
         try:
@@ -584,17 +613,69 @@ class functions:
            messagebox.showerror("Error", "No Filename Found! Please input again to create Experiment")
         except FileExistsError:
            messagebox.showerror("Error", "Filename Already Exists. Try New Filename")
+   
+   # create a window to display the
+   # image formed after scanning
+    def scan_image_window(self):
+        self.scan_image = Toplevel(self.parent)
+        self.scan_image.focus_force()
+        self.scan_image.geometry('450x450')
+        self.scan_image.attributes('-fullscreen', True)
+        self.scan_image.configure(bg = "sky blue")
+        self.scan_fig = plt.figure()
+        self.scan_image.bind("<Escape>", lambda x: self.scan_image.destroy)
+        
+        grid_size = int(self.settings[14][1])
+        plt.xlabel('X Location')
+        plt.ylabel('Y Location')
+        plt.title('ESS Scan Image')
+        
+        #configure buttons
+        self.save_image_btn = Button(self.scan_image, fg = "black", bg = "white", text = "Save Image",
+                                     width = 8, height = 2, command = self.save_scan_image)
+        self.save_image_btn.pack(padx = 3, pady = 3)
+        
+        self.quit_image = Button(self.scan_image, tex = "quit", command = self.scan_image.destroy)
+        self.quit_image.pack()
+        self.canvas = FigureCanvasTkAgg(self.scan_fig, master=self.scan_image)  # A tk.DrawingArea.
+        self.df_scan = self.df_scan.to_numpy()
+        self.canvas.get_tk_widget().pack(padx = 3, pady = 3, fill = BOTH)
+        #initalize array for the location at each pixel
+        location = np.zeros((grid_size, grid_size))
+        pixel_interest = 58
+        for x in range(grid_size):
+            for y in range(grid_size):
+                if x % 2 ==0:
+                    idx = (x*grid_size) + y + 2
+                    location[x,y] = self.analyze_spectra(self.df_scan[:,idx])
+                    
+                    #print(self.df_scan.iloc[:,2])
+                else:
+                    idx = (1+grid_size-y)+ (x*grid_size)
+                    location[x,y] = self.analyze_spectra(self.df_scan[:,idx])
+
+                    #((1+x)+((y)*grid_size))
+        self.pcolor_handle = plt.pcolor(location)
+        ax = self.pcolor_handle.axes
+        ax.invert_xaxis()
+        
+        #cbar = self.scan_fig.colorbar(location)
+        #cbar.set_ylabel('Max Value')
+        self.scan_fig.canvas.draw()
+        
+    def save_scan_image(self):
+        file_loc = self.exp_folder + str("/ESS_Scan.jpeg")
+        plt.savefig(file_loc)
+        
         
     def scan(self):
+        (self.settings, self.wavelength) = self.settings_func.settings_read()
         grid_size = int(self.settings[14][1])
         # check if spectrometer is connected
-        
-            
         if self.ser.is_open:
             self.ser.write(b"step_size %d\n" %int(self.settings[13][1]))        
             
             self.plot_labels_axis() # set axis and labels
-            (self.settings, self.wavelength) = self.settings_func.settings_read()
             # if we dont have a scan file then create one for saving data
             if self.scan_file == None:
                 messagebox.showerror('Error', 'No Scan File. Create scan file to save data')
@@ -609,7 +690,6 @@ class functions:
                     scan_resolution = int(self.settings[13][1])
                     start = time.time()
                             
-                    
                     def scan_move():
                         self.ser.write(b"step_size %d\n" %scan_resolution)
                         
@@ -645,7 +725,9 @@ class functions:
 
                             self.ser.write(b"x 0\n")
                         
+                        self.battery_check_flag = True
                         self.ser.write(b"home\n")
+                        self.battery_check_flag = False
                         self.progress_popup.destroy()
                         plt.plot(self.wavelength, self.df_scan)
                         self.fig.canvas.draw()
@@ -653,6 +735,9 @@ class functions:
                         self.scan_file = None
                         end = time.time()
                         print(end-start)
+                        
+                        # form the image from the acquired data
+                        self.scan_image_window()
                         
                     self.progress_popup = Toplevel(self.parent, bg = 'sky blue')
                     self.progress_popup.focus_force()
@@ -684,15 +769,16 @@ class functions:
 ########### Module 2 Functions ########################
     def pump_prime(self):
         self.prime_pump_handler = not self.prime_pump_handler
-        self.ser.write(b"prime_pump %d\n" %self.prime_pump_handler)
+        self.ser.write(b"prime_pump %d\n" %int(self.prime_pump_handler))
         
     def water_acquire(self, save):
         scan_message = None
         (self.settings, self.wavelength) = self.settings_func.settings_read()
         self.ser.write(b"pump_read\n")
+        time.sleep(1)  #maybe some delay after the water spray
         data = self.acquire_avg(int(self.settings[1][1]))
         if data is not None:
-            if save:
+            if save: 
                 if self.save_file == None:
                     messagebox.showerror('Error', 'No Experiment File Found, create or open File to save Data')
                 else:

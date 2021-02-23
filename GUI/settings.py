@@ -29,7 +29,8 @@ class Settings:
             ('pulse_per_measurement_3', 1),('pulse_per_measurement_4', 1),\
             ('pulse_per_measurement_5', 1),('pulse_per_measurement_6', 1),\
             ('pulse_per_measurement_7', 1),('pulse_per_measurement_8', 1),\
-            ('pulse_per_measurement_9', 1),('pulse_per_measurement_10', 1)]   # allocate 10 spaces for burst info
+            ('pulse_per_measurement_9', 1),('pulse_per_measurement_10', 1)\
+            ('Buzzer', 1)]   # allocate 10 spaces for burst info
             
         with settings_open:
             csv_writer = csv.writer(settings_open, delimiter = ',')
